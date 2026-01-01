@@ -1,7 +1,7 @@
 import Fastify, { FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
 import { generateReviews } from './reviewGenerator';
-import { businesses, updateBusiness, BusinessConfig } from './db';
+import { getBusiness, updateBusiness, BusinessConfig, connectDB } from './db';
 import QRCode from 'qrcode';
 
 const server: FastifyInstance = Fastify({
@@ -22,7 +22,7 @@ server.get('/', async (request, reply) => {
 // Get Business Status
 server.get('/business/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
-    const biz = businesses[id];
+    const biz = await getBusiness(id);
     if (!biz) return reply.status(404).send({ error: 'Business not found' });
     return biz;
 });
@@ -33,7 +33,7 @@ server.post<{ Body: Partial<BusinessConfig> }>('/business/:id/update', async (re
     const data = request.body;
 
     // Merge new data with existing
-    const updated = updateBusiness(id, {
+    const updated = await updateBusiness(id, {
         ...data,
         connected: true // Mark as connected if they save details
     });
@@ -45,7 +45,7 @@ server.post<{ Body: Partial<BusinessConfig> }>('/business/:id/update', async (re
 // Refresh Stats (Simulated)
 server.post('/business/:id/refresh-stats', async (request, reply) => {
     const { id } = request.params as { id: string };
-    const biz = businesses[id];
+    const biz = await getBusiness(id);
     if (!biz) return reply.status(404).send({ error: 'Business not found' });
 
     // Simulate fetching new data
@@ -57,14 +57,14 @@ server.post('/business/:id/refresh-stats', async (request, reply) => {
         lastUpdated: new Date().toISOString()
     };
 
-    const updated = updateBusiness(id, { stats: newStats });
+    const updated = await updateBusiness(id, { stats: newStats });
     return updated;
 });
 
 // Generate QR Code
 server.get('/business/:id/qr', async (request, reply) => {
     const { id } = request.params as { id: string };
-    const biz = businesses[id];
+    const biz = await getBusiness(id);
     if (!biz) return reply.status(404).send({ error: 'Business not found' });
 
     // The URL the QR points to (The Customer App)
@@ -86,7 +86,7 @@ server.get('/business/:id/qr', async (request, reply) => {
 // Get Public Business Context (for Review Page)
 server.get('/public/business/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
-    const biz = businesses[id];
+    const biz = await getBusiness(id);
     if (!biz) return reply.status(404).send({ error: 'Business not found' });
     // Return safe data only
     return {
