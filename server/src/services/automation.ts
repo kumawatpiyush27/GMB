@@ -51,8 +51,13 @@ export const runSyncAndReply = async () => {
                 // 3. Sync Reviews
                 const reviews = await service.fetchReviews(accountId, locationId);
 
+                let totalStars = 0;
+                let reviewCount = reviews.length;
+
                 for (const r of reviews) {
                     const reviewId = r.reviewId;
+                    const starRating = convertRating(r.starRating);
+                    totalStars += starRating;
 
                     // Upsert Review
                     const existing = await GBPReview.findOneAndUpdate(
@@ -60,7 +65,7 @@ export const runSyncAndReply = async () => {
                         {
                             locationId,
                             reviewerName: r.reviewer?.displayName,
-                            starRating: convertRating(r.starRating),
+                            starRating: starRating,
                             comment: r.comment,
                             createTime: r.createTime,
                             hasReply: !!r.reviewReply,
@@ -74,6 +79,27 @@ export const runSyncAndReply = async () => {
                     if (!existing.hasReply) {
                         await processAutoReply(conn.businessId, accountId, locationId, existing);
                     }
+                }
+
+                // --- SYNC TO MAIN DASHBOARD ---
+                // Update the user-facing Business document so stats appear in UI
+                if (reviewCount > 0) {
+                    const avgRating = totalStars / reviewCount;
+                    // We need to import updateBusiness at the top if not present, 
+                    // or just use Business.findOneAndUpdate directly to avoid circular deps if any.
+                    // Using Business model directly is safer here.
+                    const { Business } = require('../db');
+                    await Business.findOneAndUpdate(
+                        { id: conn.businessId },
+                        {
+                            placeId: locationId, // Sync real Place ID
+                            connected: true,     // Confirm connection
+                            'stats.totalReviews': reviewCount,
+                            'stats.averageRating': parseFloat(avgRating.toFixed(1)),
+                            'stats.lastUpdated': new Date().toISOString()
+                        }
+                    );
+                    console.log(`Updated Dashboard Stats for ${conn.businessId}: ${reviewCount} reviews, ${avgRating.toFixed(1)} stars`);
                 }
             }
 
