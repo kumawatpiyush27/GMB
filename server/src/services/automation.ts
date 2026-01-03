@@ -28,7 +28,7 @@ export const runSyncAndReply = async () => {
             // 1. Get Accounts (Assuming first one for now)
             const accounts = await service.fetchAccounts();
             if (!accounts.length) continue;
-            const account = accounts[0];
+            const account = accounts[0] as any;
             const accountId = account.name.split('/')[1]; // name is 'accounts/123'
 
             // 2. Get Locations
@@ -83,7 +83,7 @@ export const runSyncAndReply = async () => {
     }
 };
 
-async function processAutoReply(businessId: string, accountId: string, locationId: string, review: any) {
+export async function processAutoReply(businessId: string, accountId: string, locationId: string, review: any) {
     // Check Rules
     const rule = await ReplyRule.findOne({
         businessId,

@@ -250,7 +250,7 @@ server.post<{ Params: { businessId: string }, Body: any }>('/gbp/rules/:business
     const { businessId } = req.params;
     const rule = await ReplyRule.findOneAndUpdate(
         { businessId } as any,
-        req.body,
+        req.body as any,
         { upsert: true, new: true }
     );
     return rule;

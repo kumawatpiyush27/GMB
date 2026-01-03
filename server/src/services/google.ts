@@ -46,31 +46,29 @@ export class GoogleBusinessService {
     }
 
     // 3. Fetch Reviews (Legacy v4 API as requested)
+    // 3. Fetch Reviews (Legacy v4 API)
     async fetchReviews(accountId: string, locationId: string) {
-        // We use the generic googleapis request because v4 might be tricky with typed SDK
-        const mybusiness = google.mybusiness({ version: 'v4', auth: oauth2Client });
-
-        // Location Format: accounts/{accountId}/locations/{locationId}
         const name = `accounts/${accountId}/locations/${locationId}`;
+        const url = `https://mybusiness.googleapis.com/v4/${name}/reviews?pageSize=50`;
 
-        const res = await mybusiness.accounts.locations.reviews.list({
-            name,
-            pageSize: 50
-        });
-
-        return res.data.reviews || [];
+        try {
+            const res = await oauth2Client.request({ url });
+            return (res.data as any).reviews || [];
+        } catch (e) {
+            console.error('Error fetching reviews:', e);
+            return [];
+        }
     }
 
     // 4. Post Reply
     async replyToReview(accountId: string, locationId: string, reviewId: string, comment: string) {
-        const mybusiness = google.mybusiness({ version: 'v4', auth: oauth2Client });
         const name = `accounts/${accountId}/locations/${locationId}/reviews/${reviewId}`;
+        const url = `https://mybusiness.googleapis.com/v4/${name}/reply`;
 
-        await mybusiness.accounts.locations.reviews.updateReply({
-            name, // resource name
-            requestBody: {
-                comment
-            }
+        await oauth2Client.request({
+            url,
+            method: 'PUT',
+            data: { comment }
         });
     }
 }
