@@ -280,6 +280,26 @@ server.get('/cron/sync', async (req, reply) => {
     return { status: 'Sync Completed' };
 });
 
+// 6. Get All Reviews (Inbox)
+server.get<{ Params: { id: string } }>('/business/:id/reviews', async (req, reply) => {
+    const { id } = req.params;
+
+    // 1. Find Location ID for this Business
+    const { GBPLocation, GBPReview } = require('./db');
+    const location = await GBPLocation.findOne({ businessId: id });
+
+    if (!location) {
+        // Fallback: If no synced location, return empty array
+        return [];
+    }
+
+    // 2. Fetch Reviews
+    const reviews = await GBPReview.find({ locationId: location.locationId })
+        .sort({ createTime: -1 }); // Newest first
+    return reviews;
+});
+
 export default server;
+
 
 
