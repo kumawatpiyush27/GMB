@@ -25,6 +25,15 @@ export async function POST(request: NextRequest) {
 
         const { password: _, ...bizData } = business.toObject();
 
+        if (business.isActive === false) {
+            return NextResponse.json({
+                error: 'Account inactive',
+                businessId: business.id,
+                email: business.email,
+                name: business.name
+            }, { status: 403 });
+        }
+
         return NextResponse.json(bizData);
     } catch (e: any) {
         console.error('Login Error:', e);

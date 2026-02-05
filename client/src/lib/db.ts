@@ -23,6 +23,7 @@ export interface BusinessConfig {
     };
     email?: string;
     password?: string;
+    isActive?: boolean; // Added for Manual Control
 }
 
 export interface IBusinessDocument extends BusinessConfig, Document { }
@@ -32,6 +33,7 @@ export interface IBusinessDocument extends BusinessConfig, Document { }
 const BusinessSchema: Schema = new Schema({
     id: { type: String, required: true, unique: true },
     name: { type: String, required: true },
+    isActive: { type: Boolean, default: true }, // Added default true
     connected: { type: Boolean, default: false },
     placeId: { type: String, required: false },
     category: { type: String, required: true },
@@ -50,7 +52,7 @@ const BusinessSchema: Schema = new Schema({
     },
     email: { type: String, unique: true, sparse: true },
     password: { type: String, select: false }
-});
+}, { timestamps: true });
 
 // --- 1. Connection (Auth) ---
 export interface IGBPConnection extends Document {

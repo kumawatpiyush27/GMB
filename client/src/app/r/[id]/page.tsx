@@ -66,6 +66,20 @@ export default function CustomerReviewPage() {
         );
     }
 
+    if (biz.isActive === false) {
+        return (
+            <div style={{ padding: '60px 20px', color: 'white', textAlign: 'center', minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+                <div style={{ fontSize: '4rem', marginBottom: '20px' }}>⚠️</div>
+                <h1 className="gradient-text" style={{ fontSize: '2rem', marginBottom: '20px' }}>
+                    Service Suspended
+                </h1>
+                <p style={{ color: '#cbd5e1', fontSize: '1.2rem', maxWidth: '600px', margin: '0 auto 30px' }}>
+                    The subscription for this business is over. Please renew to continue determining customer feedback.
+                </p>
+            </div>
+        );
+    }
+
     return (
         <div style={{ maxWidth: '800px', margin: '0 auto', padding: '20px' }}>
             <header style={{ textAlign: 'center', marginBottom: '40px' }} className="animate-fade-in">

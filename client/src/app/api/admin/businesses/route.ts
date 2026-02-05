@@ -5,7 +5,7 @@ export async function GET(request: NextRequest) {
     try {
         await connectDB();
         const businesses = await Business.find({}, {
-            id: 1, name: 1, location: 1, category: 1, connected: 1
+            id: 1, name: 1, location: 1, category: 1, connected: 1, isActive: 1, createdAt: 1
         }).lean();
 
         return NextResponse.json(businesses);

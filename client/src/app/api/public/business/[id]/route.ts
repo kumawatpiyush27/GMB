@@ -28,6 +28,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         location: biz.location,
         placeId: biz.placeId,
         review_url: biz.review_url,
-        keywords: biz.seo_keywords
+        keywords: biz.seo_keywords,
+        isActive: biz.isActive // Added for manual control check
     });
 }

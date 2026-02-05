@@ -283,6 +283,33 @@ export default function Dashboard() {
                     </form>
                 )}
             </div>
+            {/* Support Button */}
+            <a
+                href="https://wa.me/918239061209"
+                target="_blank"
+                rel="noreferrer"
+                title="Contact Support"
+                style={{
+                    position: 'fixed',
+                    bottom: '30px',
+                    right: '30px',
+                    width: '60px',
+                    height: '60px',
+                    background: '#22c55e',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: '0 4px 15px rgba(34, 197, 94, 0.4)',
+                    cursor: 'pointer',
+                    zIndex: 1000,
+                    fontSize: '30px', // simpler than importing an icon for now
+                    color: 'white',
+                    textDecoration: 'none'
+                }}
+            >
+                💬
+            </a>
         </div>
     );
 }

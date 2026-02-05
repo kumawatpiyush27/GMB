@@ -56,6 +56,25 @@ export default function AdminDashboard() {
         router.push('/dashboard');
     };
 
+    const handleToggleStatus = async (id: string, currentStatus: boolean, name: string) => {
+        if (!confirm(`Turn ${currentStatus ? 'OFF' : 'ON'} access for ${name}?`)) return;
+        try {
+            const res = await fetch(`${API_URL}/admin/business/toggle-status`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ businessId: id, isActive: !currentStatus })
+            });
+
+            if (res.ok) {
+                setBusinesses(prev => prev.map(b => b.id === id ? { ...b, isActive: !currentStatus } : b));
+            } else {
+                alert('Failed to update status');
+            }
+        } catch (e) {
+            alert('Error updating status');
+        }
+    };
+
     if (!isAuthenticated) {
         return (
             <div style={{
@@ -93,7 +112,8 @@ export default function AdminDashboard() {
                             <th style={{ padding: '10px' }}>ID</th>
                             <th style={{ padding: '10px' }}>Name</th>
                             <th style={{ padding: '10px' }}>Location</th>
-                            <th style={{ padding: '10px' }}>Status</th>
+                            <th style={{ padding: '10px' }}>Signed Up</th>
+                            <th style={{ padding: '10px' }}>Access</th>
                             <th style={{ padding: '10px' }}>Actions</th>
                         </tr>
                     </thead>
@@ -103,16 +123,26 @@ export default function AdminDashboard() {
                                 <td style={{ padding: '10px', fontFamily: 'monospace', color: '#94a3b8' }}>{biz.id}</td>
                                 <td style={{ padding: '10px', fontWeight: 'bold' }}>{biz.name}</td>
                                 <td style={{ padding: '10px' }}>{biz.location}</td>
+                                <td style={{ padding: '10px', fontSize: '0.9rem', color: '#cbd5e1' }}>
+                                    {biz.createdAt ? new Date(biz.createdAt).toLocaleDateString() : '-'}
+                                </td>
                                 <td style={{ padding: '10px' }}>
-                                    <span style={{
-                                        color: biz.connected ? '#4ade80' : '#facc15',
-                                        fontSize: '0.8rem',
-                                        border: `1px solid ${biz.connected ? '#4ade80' : '#facc15'}`,
-                                        padding: '2px 6px',
-                                        borderRadius: '4px'
-                                    }}>
-                                        {biz.connected ? 'Connected' : 'Pending'}
-                                    </span>
+                                    <button
+                                        onClick={() => handleToggleStatus(biz.id, biz.isActive !== false, biz.name)}
+                                        style={{
+                                            border: 'none',
+                                            background: biz.isActive !== false ? '#22c55e' : '#64748b',
+                                            color: 'white',
+                                            padding: '4px 10px',
+                                            borderRadius: '20px',
+                                            cursor: 'pointer',
+                                            fontWeight: 'bold',
+                                            fontSize: '0.8rem',
+                                            transition: 'all 0.3s'
+                                        }}
+                                    >
+                                        {biz.isActive !== false ? 'ON' : 'OFF'}
+                                    </button>
                                 </td>
                                 <td style={{ padding: '10px', display: 'flex', gap: '10px' }}>
                                     <button
