@@ -36,40 +36,40 @@ export default function Home() {
     }
   };
 
-  //   const handlePayment = (amount: string, planName: string) => {
-  //     // This is a client-side integration for demo purposes.
-  //     // In production, you should create an order on your backend.
-  //     /*
-  //     const options = {
-  //       key: "YOUR_RAZORPAY_KEY_ID", // ⚠️ REPLACE WITH YOUR REAL KEY ID
-  //       amount: amount,
-  //       currency: "INR",
-  //       name: "Retner SmartReview",
-  //       description: planName,
-  //       image: "https://cdn-icons-png.flaticon.com/512/3523/3523063.png",
-  //       handler: function (response: any) {
-  //         // Payment Success
-  //         window.location.href = "https://chat.whatsapp.com/FYs6S3BV0tq4taqdO7CBcL";
-  //       },
-  //       prefill: {
-  //         name: "",
-  //         email: "",
-  //         contact: ""
-  //       },
-  //       theme: {
-  //         color: "#8b5cf6"
-  //       }
-  //     };
+  const handlePayment = (amount: string, planName: string) => {
+    // This is a client-side integration for demo purposes.
+    // In production, you should create an order on your backend.
 
-  //     if (typeof (window as any).Razorpay !== 'undefined') {
-  //       const rzp1 = new (window as any).Razorpay(options);
-  //       rzp1.open();
-  //     } else {
-  //       alert("Razorpay SDK failed to load. Please refresh.");
-  //     }
-  //     */
-  //     console.log("Manual payment disabled in favor of subscription button.");
-  //   };
+    const options = {
+      key: "YOUR_RAZORPAY_KEY_ID", // ⚠️ REPLACE WITH YOUR REAL KEY ID
+      amount: amount,
+      currency: "INR",
+      name: "Retner SmartReview",
+      description: planName,
+      image: "https://cdn-icons-png.flaticon.com/512/3523/3523063.png",
+      handler: function (response: any) {
+        // Payment Success
+        window.location.href = "https://chat.whatsapp.com/FYs6S3BV0tq4taqdO7CBcL";
+      },
+      prefill: {
+        name: "",
+        email: "",
+        contact: ""
+      },
+      theme: {
+        color: "#8b5cf6"
+      }
+    };
+
+    if (typeof (window as any).Razorpay !== 'undefined') {
+      const rzp1 = new (window as any).Razorpay(options);
+      rzp1.open();
+    } else {
+      alert("Razorpay SDK failed to load. Please refresh.");
+    }
+
+    // console.log("Manual payment disabled in favor of subscription button.");
+  };
 
   return (
     <div style={{ minHeight: '100vh', background: '#0f172a', color: 'white', overflowX: 'hidden' }}>
