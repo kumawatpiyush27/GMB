@@ -76,23 +76,31 @@ export async function POST(request: NextRequest) {
 
             return NextResponse.json(parsedReviews);
 
-        } catch (aiError) {
+        } catch (aiError: any) {
             console.error("AI Generation Failed, falling back to static:", aiError);
-            // Fallthrough to static
+
+            // 2. Fallback: Static Generation
+            const reviews = generateStaticReviews({
+                businessName,
+                customer_name,
+                visited_for,
+                product_bought,
+                location,
+                seo_keywords,
+                experience_notes
+            });
+
+            // Attach debug info to response
+            return NextResponse.json({
+                ...reviews,
+                _debug: {
+                    error: aiError.message,
+                    message: aiError.response?.data || 'Unknown OpenAI Error',
+                    keyConfigured: !!OPENAI_KEY,
+                    keyPrefix: OPENAI_KEY ? OPENAI_KEY.substring(0, 5) : 'N/A'
+                }
+            });
         }
-
-        // 2. Fallback: Static Generation
-        const reviews = generateStaticReviews({
-            businessName,
-            customer_name,
-            visited_for,
-            product_bought,
-            location,
-            seo_keywords,
-            experience_notes
-        });
-
-        return NextResponse.json(reviews);
     } catch (err) {
         console.error(err);
         return NextResponse.json({ error: 'Failed to generate reviews' }, { status: 500 });
