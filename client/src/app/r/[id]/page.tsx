@@ -73,7 +73,7 @@ export default function CustomerReviewPage() {
                     {biz.name}
                 </h1>
                 <p style={{ color: '#cbd5e1' }}>
-                    Thank you for visiting! Please select a review to share your experience on Google.
+                    Welcome to Retner Reviews! Please select a review to share your experience.
                 </p>
             </header>
 
