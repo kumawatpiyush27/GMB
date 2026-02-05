@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
         const body = await request.json();
         const { businessName, customer_name, visited_for, product_bought, location, seo_keywords, experience_notes } = body;
 
-        // 1. Try OpenAI Generation
+        // 1. Try OpenAI Generation (Requires ENV Var)
         try {
             const prompt = `
             You are a local resident and happy customer writing a Google Review for a business.
