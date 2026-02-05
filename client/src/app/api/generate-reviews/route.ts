@@ -12,25 +12,41 @@ export async function POST(request: NextRequest) {
         try {
             const prompt = `
             You are a happy customer writing a Google Review for a business.
-            Business Name: "${businessName}"
-            Location: "${location}"
-            Category/Service: "${visited_for}"
-            ${product_bought ? `Product Bought: "${product_bought}"` : ''}
-            ${seo_keywords?.length ? `Keywords to naturally include: ${seo_keywords.join(', ')}` : ''}
-            ${experience_notes?.length ? `Specific Context: ${experience_notes.join(', ')}` : ''}
-
-            Task: Generate 5 completely unique, distinct, and human-sounding 5-star reviews.
-            The reviews should vary in length and tone.
             
-            Styles required:
-            1. Short & Sweet (One sentence)
-            2. Detailed Experience (2-3 sentences)
-            3. Enthusiastic/Excited (Uses emojis)
-            4. Professional/Formal
-            5. Grateful/Appreciative
+            --- BUSINESS DETAILS ---
+            Name: "${businessName}"
+            Location: "${location}"
+            Category: "${visited_for}"
+            ${product_bought ? `Product/Service Purchased: "${product_bought}"` : ''}
+            ${seo_keywords?.length ? `Keywords: ${seo_keywords.join(', ')}` : ''}
+            ${experience_notes?.length ? `Context/Notes: ${experience_notes.join(', ')}` : ''}
 
-            Return ONLY a valid JSON object where keys are the style names above and values are the review text provided.
-            Do not include any markdown formatting or code blocks. Just the raw JSON.
+            --- INSTRUCTIONS ---
+            1. **Analyze the Business Type**: Based on the Category and Name, decide if this is a:
+               - **D2C/E-commerce Brand** (Focus on: website experience, packaging, delivery speed, product quality).
+               - **Physical Store/Showroom** (Focus on: ambiance, staff behavior, variety, parking/location).
+               - **Corporate/IT Office** (Focus on: professionalism, work culture, delivery, technical expertise).
+               - **Service Provider** (Focus on: timeliness, communication, problem-solving).
+            
+            2. **Generate 5 Distinct 5-Star Reviews**:
+               - Write completely unique reviews tailored to the identified Business Type.
+               - ALL reviews must be positive (5 stars).
+               - STRICTLY FOLLOW these 5 distinct styles:
+                 a) **Short & Sweet**: One impactful sentence.
+                 b) **Detailed Experience**: 3-4 sentences describing the specific experience/outcome.
+                 c) **Enthusiastic**: High energy, uses emojis (e.g. 🚀, ⭐, 🔥).
+                 d) **Professional/Appreciative**: Formal tone, focusing on value and reliability.
+                 e) **Direct Recommendation**: "Highly recommend because..." style.
+
+            --- OUTPUT FORMAT ---
+            Return ONLY a valid, raw JSON object (no markdown, no code blocks) with these exact keys:
+            {
+                "Short & Sweet": "...",
+                "Detailed Experience": "...",
+                "Enthusiastic": "...",
+                "Professional": "...",
+                "Direct Recommendation": "..."
+            }
             `;
 
             const aiRes = await fetch("https://api.openai.com/v1/chat/completions", {
