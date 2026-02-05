@@ -18,8 +18,16 @@ export function generateReviews(input: ReviewInput) {
 
     // Detect Mode
     const catLower = (visited_for || "").toLowerCase();
+    const nameLower = (businessName || "").toLowerCase();
+    const keywordsStr = (seo_keywords || []).join(" ").toLowerCase();
+
+    const softwareTerms = ['software', 'marketing', 'agency', 'solution', 'development', 'consultant', 'seo', 'design', 'web', 'digital', 'tech', 'app', 'media', 'retner'];
+
+    // Check if any term exists in Category, Name, or Keywords
+    const matchesTerm = (text: string) => softwareTerms.some(term => text.includes(term));
+
+    const isSoftware = matchesTerm(catLower) || matchesTerm(nameLower) || matchesTerm(keywordsStr);
     const isProduct = !!product_bought && product_bought.length > 0;
-    const isSoftware = catLower.includes('software') || catLower.includes('marketing') || catLower.includes('agency') || catLower.includes('solution') || catLower.includes('development') || catLower.includes('consultant') || catLower.includes('seo') || catLower.includes('design');
 
     // Core Variables
     const item = isProduct ? product_bought : (visited_for || "service");
