@@ -90,16 +90,7 @@ export async function POST(request: NextRequest) {
                 experience_notes
             });
 
-            // Attach debug info to response
-            return NextResponse.json({
-                ...reviews,
-                _debug: {
-                    error: aiError.message,
-                    message: aiError.response?.data || 'Unknown OpenAI Error',
-                    keyConfigured: !!OPENAI_KEY,
-                    keyPrefix: OPENAI_KEY ? OPENAI_KEY.substring(0, 5) : 'N/A'
-                }
-            });
+            return NextResponse.json(reviews);
         }
     } catch (err) {
         console.error(err);
