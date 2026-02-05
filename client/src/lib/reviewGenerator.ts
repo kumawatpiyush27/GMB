@@ -57,12 +57,41 @@ export function generateReviews(input: ReviewInput) {
             "Direct": `Best place for ${item}. ${noteFormatted}. Value for money product. ⭐⭐⭐⭐⭐`
         };
     } else if (isSoftware) {
-        // --- SOFTWARE/B2B REVIEWS (Customized for Retner/Agency) ---
+        // --- SOFTWARE/B2B REVIEWS (Randomized Variations) ---
+
+        // 1. Website + SEO Variations
+        const websiteReviews = [
+            `${bizName} built our ecommerce website and handled complete SEO. Our website traffic improved significantly and rankings started growing within weeks. Best website development and SEO service in ${location}.`,
+            `We hired ${bizName} for website development and SEO. The results have been fantastic. Our organic traffic has doubled. Top-notch SEO agency in ${location}.`,
+            `Amazing work on our website by ${bizName}. Their SEO strategies really work. We are now ranking on the first page. Highly recommend them for any ecommerce brand in ${location}.`
+        ];
+
+        // 2. Software + Automation Variations
+        const automationReviews = [
+            `We use ${bizName} for WhatsApp marketing automation. Their software helped us increase repeat orders and automate follow-ups. Very reliable software company in ${location}.`,
+            `The customer retention software from ${bizName} is a game changer. Automated our entire workflow. Best software solution we have found in ${location}.`,
+            `If you need WhatsApp automation, ${bizName} is the best. It's easy to use and increased our sales. Great software support team in ${location}.`
+        ];
+
+        // 3. Shopify + SEO Variations
+        const shopifyReviews = [
+            `${bizName} worked on our Shopify website development and SEO. They understand ecommerce deeply and helped us improve conversions. Recommended ecommerce SEO agency.`,
+            `Experts in Shopify & SEO! ${bizName} transformed our online store. Sales have gone up since they took over. Best Shopify developers in ${location}.`,
+            `Very happy with the Shopify development service by ${bizName}. They optimized our store for SEO and speed. True experts in ${location}.`
+        ];
+
+        // 4. D2C/Growth Variations
+        const d2cReviews = [
+            `${bizName} is a great D2C marketing platform. From website to automation, everything was handled professionally. Best digital marketing company for ecommerce.`,
+            `One stop solution for D2C brands. ${bizName} helped us scale with their marketing and tech solutions. Best agency in ${location} for growth.`,
+            `Partnering with ${bizName} was our best decision. Their D2C marketing approach is unique and effective. Highly knowledgeable team in ${location}.`
+        ];
+
         reviews = {
-            "Website + SEO": `${bizName} built our ecommerce website and handled complete SEO. Our website traffic improved significantly and rankings started growing within weeks. Best website development and SEO service in ${location} for ecommerce brands.`,
-            "Software + Automation": `We use ${bizName} for WhatsApp marketing automation and customer retention. Their software helped us increase repeat orders and automate follow-ups. Very reliable software company in ${location}.`,
-            "Shopify + SEO": `${bizName} worked on our Shopify website development and SEO. They understand ecommerce deeply and helped us improve conversions and organic traffic. Highly recommended ecommerce SEO agency.`,
-            "D2C Brand Approach": `${bizName} is a great D2C marketing platform. From website development to WhatsApp automation and SEO, everything was handled professionally. One of the best digital marketing companies for ecommerce.`,
+            "Website + SEO": pick(websiteReviews),
+            "Software + Automation": pick(automationReviews),
+            "Shopify + SEO": pick(shopifyReviews),
+            "D2C Brand Approach": pick(d2cReviews),
             "Service Experience": `Great experience with this ${visited_for}. ${noteFormatted}. The team provided exactly what we needed to scale. Recommended!`
         };
     } else {
