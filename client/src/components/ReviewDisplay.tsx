@@ -81,17 +81,41 @@ export default function ReviewDisplay({ reviews, placeId, reviewUrl, businessNam
                 </div>
             )}
 
-            <div className="grid grid-cols-1 gap-6 mt-8 animate-fade-in" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
+            <div className="grid grid-cols-1 gap-6 mt-8 animate-fade-in" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
                 {(Object.entries(reviews) as [string, string][]).map(([type, text]) => (
-                    <div key={type} className="glass-panel" style={{ padding: '24px', display: 'flex', flexDirection: 'column' }}>
-                        <h3 className="gradient-text" style={{ marginTop: 0, marginBottom: '12px', fontSize: '1.25rem' }}>{type} Review</h3>
-                        <p style={{ color: '#e2e8f0', lineHeight: '1.6', flex: 1, marginBottom: '20px' }}>{text}</p>
+                    <div key={type} className="glass-panel" style={{ padding: '24px', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+                        {/* Google Review Style Header */}
+                        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '15px' }}>
+                            {/* Avatar */}
+                            <div style={{
+                                width: '40px', height: '40px', borderRadius: '50%',
+                                background: 'linear-gradient(135deg, #cbd5e1 0%, #94a3b8 100%)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                fontSize: '1.2rem', color: '#1e293b', fontWeight: 'bold', marginRight: '12px'
+                            }}>
+                                {type.charAt(0)}
+                            </div>
+                            <div>
+                                <div style={{ fontWeight: 'bold', fontSize: '1rem', color: 'white' }}>{type}</div>
+                                <div style={{ display: 'flex', alignItems: 'center', fontSize: '0.8rem', color: '#94a3b8', gap: '5px' }}>
+                                    <span style={{ color: '#facc15' }}>★★★★★</span>
+                                    <span> • a moment ago</span>
+                                </div>
+                            </div>
+                            <img src="/assets/google-g-logo.png" style={{ width: '20px', height: '20px', marginLeft: 'auto', opacity: 0.5 }} onError={(e) => e.currentTarget.style.display = 'none'} />
+                        </div>
+
+                        {/* Review Content */}
+                        <p style={{ color: '#e2e8f0', lineHeight: '1.6', flex: 1, marginBottom: '20px', fontSize: '0.95rem' }}>
+                            {text}
+                        </p>
+
                         <button
                             className="btn-primary"
                             onClick={() => handleCopyAndRedirect(text, type)}
-                            style={{ alignSelf: 'stretch', textAlign: 'center' }}
+                            style={{ alignSelf: 'stretch', textAlign: 'center', padding: '12px', borderRadius: '8px', fontSize: '1rem' }}
                         >
-                            Select & Post
+                            Copy Text & Post
                         </button>
                     </div>
                 ))}
