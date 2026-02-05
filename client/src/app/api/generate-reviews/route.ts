@@ -11,42 +11,44 @@ export async function POST(request: NextRequest) {
         // 1. Try OpenAI Generation
         try {
             const prompt = `
-            You are a happy customer writing a Google Review for a business.
+            You are a local resident and happy customer writing a Google Review for a business.
             
-            --- BUSINESS DETAILS ---
+            --- BUSINESS CONTEXT ---
             Name: "${businessName}"
             Location: "${location}"
             Category: "${visited_for}"
-            ${product_bought ? `Product/Service Purchased: "${product_bought}"` : ''}
-            ${seo_keywords?.length ? `Keywords: ${seo_keywords.join(', ')}` : ''}
-            ${experience_notes?.length ? `Context/Notes: ${experience_notes.join(', ')}` : ''}
+            ${product_bought ? `Product/Service: "${product_bought}"` : ''}
+            ${seo_keywords?.length ? `Keywords to Integrate: ${seo_keywords.join(', ')}` : ''}
+            ${experience_notes?.length ? `Specific Context: ${experience_notes.join(', ')}` : ''}
 
-            --- INSTRUCTIONS ---
-            1. **Analyze the Business Type**: Based on the Category and Name, decide if this is a:
-               - **D2C/E-commerce Brand** (Focus on: website experience, packaging, delivery speed, product quality).
-               - **Physical Store/Showroom** (Focus on: ambiance, staff behavior, variety, parking/location).
-               - **Corporate/IT Office** (Focus on: professionalism, work culture, delivery, technical expertise).
-               - **Service Provider** (Focus on: timeliness, communication, problem-solving).
-            
-            2. **Generate 5 Distinct 5-Star Reviews**:
-               - Write completely unique reviews tailored to the identified Business Type.
-               - ALL reviews must be positive (5 stars).
-               - STRICTLY FOLLOW these 5 distinct styles:
-                 a) **Short & Sweet**: One impactful sentence.
-                 b) **Detailed Experience**: 3-4 sentences describing the specific experience/outcome.
-                 c) **Enthusiastic**: High energy, uses emojis (e.g. 🚀, ⭐, 🔥).
-                 d) **Professional/Appreciative**: Formal tone, focusing on value and reliability.
-                 e) **Direct Recommendation**: "Highly recommend because..." style.
+            --- DEEP ANALYSIS INSTRUCTION ---
+            1. **Determine Business Nature**:
+               - Is it a **D2C Brand**? (Focus: Packaging, Website UX, Delivery, Quality)
+               - Is it a **Local Shop/Showroom**? (Focus: Staff Name, Parking, Crowd, Ambiance, "Hidden Gem")
+               - Is it a **Service Agency**? (Focus: ROI, Communication, Deadlines, Trust)
+               - Is it a **Corporate Office**? (Focus: Professionalism, Culture, Infrastructure)
 
-            --- OUTPUT FORMAT ---
-            Return ONLY a valid, raw JSON object (no markdown, no code blocks) with these exact keys:
-            {
-                "Short & Sweet": "...",
-                "Detailed Experience": "...",
-                "Enthusiastic": "...",
-                "Professional": "...",
-                "Direct Recommendation": "..."
-            }
+            2. **Optimization Strategy (SEO + GEO + AEO)**:
+               - **SEO**: Naturally weave in the provided keywords. Don't stuff them.
+               - **GEO**: Mention "${location}" explicitly. Mention nearby landmarks or neighborhoods if known (hallucinate plausible local details if needed for realism, e.g., "near the market", "in the city center").
+               - **AEO (Answer Engine Optimization)**: Phrase parts of the review to answer questions like "Is ${businessName} good for...?", "Best ${visited_for} in ${location}?".
+
+            3. **Humanization (Crucial)**:
+               - Use natural, slightly imperfect language (varied sentence length).
+               - Express genuine emotion (relief, excitement, gratitude).
+               - Avoid robotic/marketing fluff like "unparalleled excellence" or "top-notch solution". Use "game changer", "lifesaver", "super helpful".
+
+            --- GENERATE 5 REVIEWS ---
+            Create 5 completely distinct reviews in these styles:
+            1. **The Storyteller**: A detailed paragraph sharing a specific problem and how this business solved it.
+            2. **Short & Punchy**: 1-2 impactful sentences. High confidence.
+            3. **The Local Expert**: Mentions location/neighborhood context. "Best spot in ${location}..."
+            4. **Value-Focused**: Focuses on price/quality ratio. "Worth every penny".
+            5. **Appreciative/Personal**: Mentions staff behavior or specific service aspect. "Big thanks to the team..."
+
+            --- OUTPUT ---
+            Return ONLY a valid raw JSON object. Keys: "Storyteller", "Short", "Local_Expert", "Value", "Appreciative".
+            Values: The review text.
             `;
 
             const aiRes = await fetch("https://api.openai.com/v1/chat/completions", {
