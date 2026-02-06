@@ -16,16 +16,15 @@ export default function AutoReplyPage() {
     });
 
     useEffect(() => {
-        // Fetch business data
-        const token = localStorage.getItem('token');
-        if (!token) {
-            router.push('/login');
+        // Get business ID from localStorage
+        const storedId = localStorage.getItem('gmb_biz_id');
+        if (!storedId) {
+            router.push('/onboarding');
             return;
         }
 
-        fetch(`${API_URL}/auth/me`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        })
+        // Fetch business data
+        fetch(`${API_URL}/business/${storedId}`)
             .then(r => r.json())
             .then(data => {
                 setBusiness(data);
@@ -36,7 +35,7 @@ export default function AutoReplyPage() {
             })
             .catch(err => {
                 console.error(err);
-                setLoading(false);
+                router.push('/onboarding');
             });
 
         // Check for OAuth success/error
@@ -57,11 +56,9 @@ export default function AutoReplyPage() {
     };
 
     const handleSaveConfig = async () => {
-        const token = localStorage.getItem('token');
         const response = await fetch(`${API_URL}/business/${business._id}/auto-reply-config`, {
             method: 'PUT',
             headers: {
-                'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(config)
