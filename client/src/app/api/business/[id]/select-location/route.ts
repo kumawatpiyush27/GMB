@@ -3,10 +3,10 @@ import { connectDB, GBPConnection, Business, ReplyRule } from '@/lib/db';
 
 export async function POST(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const businessId = params.id;
+        const { id: businessId } = await params;
         const { location, accountName } = await request.json();
 
         if (!location || !accountName) {

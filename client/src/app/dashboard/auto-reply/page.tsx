@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { API_URL } from '@/app/config';
 
-export default function AutoReplyPage() {
+function AutoReplyContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [business, setBusiness] = useState<any>(null);
@@ -48,7 +48,7 @@ export default function AutoReplyPage() {
         if (error) {
             alert(`❌ Connection failed: ${error}`);
         }
-    }, []);
+    }, [searchParams]);
 
     const handleConnectGoogle = () => {
         if (!business?._id) return;
@@ -238,5 +238,13 @@ export default function AutoReplyPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function AutoReplyPage() {
+    return (
+        <Suspense fallback={<div style={{ padding: '40px', color: 'white' }}><h2>Loading...</h2></div>}>
+            <AutoReplyContent />
+        </Suspense>
     );
 }
