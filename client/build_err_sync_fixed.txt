@@ -1,0 +1,65 @@
+﻿
+> client@0.1.0 build
+> next build
+
+node.exe : ΓÜá `eslint` 
+configuration in next.config.ts is 
+no longer supported. See more info 
+here: https://nextjs.org/docs/app/api
+-reference/cli/next#next-lint-options
+At line:1 char:1
++ & "C:\Program 
+Files\nodejs/node.exe" "C:\Program 
+Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpe 
+   cified: (ΓÜá `eslint` co...xt-li  
+  nt-options:String) [], RemoteExc   
+ eption
+    + FullyQualifiedErrorId : Native 
+   CommandError
+ 
+ΓÜá Invalid next.config.ts options 
+detected: 
+ΓÜá     Unrecognized key(s) in 
+object: 'eslint'
+ΓÜá See more info here: https://nextj
+s.org/docs/messages/invalid-next-conf
+ig
+Γû▓ Next.js 16.1.1 (Turbopack)
+- Environments: .env.local
+
+  Creating an optimized production build ...
+Γ£ô Compiled successfully in 26.5s
+  Running TypeScript ...
+Failed to compile.
+
+./src/app/api/business/[id]/reviews/r
+oute.ts:16:25
+Type error: Property 
+'googleLocationId' does not exist on 
+type 'BusinessConfig'.
+
+[0m [90m 14 |[39m
+ [90m 15 |[39m     [90m// 2. 
+Fetch Reviews by Google Location ID 
+(GMB API) or Place ID (Places 
+API)[39m
+[31m[1m>[22m[39m[90m 16 |[39m  
+   [36mconst[39m queryId 
+[33m=[39m 
+biz[33m.[39mgoogleLocationId 
+[33m||[39m 
+biz[33m.[39mplaceId[33m;[39m
+ [90m    |[39m                     
+    [31m[1m^[22m[39m
+ [90m 17 |[39m
+ [90m 18 |[39m     [36mif[39m 
+([33m![39mqueryId) {
+ [90m 19 |[39m         
+[36mreturn[39m [33mNextResponse[3
+9m[33m.[39mjson([])[33m;[39m[0m
+Next.js build worker exited with 
+code: 1 and signal: null
+

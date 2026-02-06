@@ -13,12 +13,15 @@ export interface BusinessConfig {
     location: string;
     review_url?: string;
     accessToken?: string;
+    googleLocationId?: string;
+    googleLocationName?: string;
+    storeCode?: string;
     refreshToken?: string;
     stats?: {
         totalReviews: number;
         averageRating: number;
         totalPosts: number;
-        totalScans: number; // Added
+        totalScans: number;
         lastUpdated: string;
     };
     email?: string;

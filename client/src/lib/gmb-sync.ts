@@ -33,17 +33,19 @@ export async function syncGMBReviews(businessId: string) {
 
     const accessToken = tokens.access_token;
 
-    // 3. Fetch Reviews from GMB
-    // GMB v4 uses: https://mybusiness.googleapis.com/v4/{locationName}/reviews
-    // biz.googleLocationId is in format "locations/{id}" or "accounts/{acc}/locations/{loc}"
-    // If it starts with "locations/", we might need the full path. 
-    // But usually in Business Information API v1 it returns full resource names.
+    // 3. Construct Correct Resource Name for GMB v4 Review API
+    // biz.googleLocationId is usually "locations/LOC_ID"
+    // connection.googleAccountId is usually "accounts/ACC_ID"
+    // API expects: "accounts/ACC_ID/locations/LOC_ID"
 
-    let locationName = biz.googleLocationId;
-    // If it's just "locations/123", we need the account context.
-    // But our select-location logic saved location.name which is usually full.
+    let resourcePath = biz.googleLocationId;
+    if (connection.googleAccountId && !resourcePath.includes('accounts/')) {
+        resourcePath = `${connection.googleAccountId}/${biz.googleLocationId}`;
+    }
 
-    const reviewsUrl = `https://mybusiness.googleapis.com/v4/${locationName}/reviews`;
+    console.log(`Fetching reviews for resource: ${resourcePath}`);
+
+    const reviewsUrl = `https://mybusiness.googleapis.com/v4/${resourcePath}/reviews`;
 
     const reviewsRes = await fetch(reviewsUrl, {
         headers: { Authorization: `Bearer ${accessToken}` }
@@ -52,20 +54,25 @@ export async function syncGMBReviews(businessId: string) {
     const reviewsData = await reviewsRes.json();
 
     if (reviewsData.error) {
+        console.error('GMB Review Sync API Error:', reviewsData.error);
         throw new Error(`GMB API Error: ${reviewsData.error.message}`);
     }
 
     const gmbReviews = reviewsData.reviews || [];
+    console.log(`Fetched ${gmbReviews.length} reviews for ${biz.name}`);
     let savedCount = 0;
 
-    // 4. Upsert into Database
+    // We use biz.googleLocationId in the local DB for querying
+    const dbLocationId = biz.googleLocationId;
+
+    // 4. Upsert into Database (Key: reviewId)
     for (const r of gmbReviews) {
         const starRating = convertGMBRating(r.starRating);
 
         await GBPReview.findOneAndUpdate(
             { reviewId: r.reviewId },
             {
-                locationId: locationName,
+                locationId: dbLocationId,
                 reviewerName: r.reviewer?.displayName || 'Anonymous',
                 starRating: starRating,
                 comment: r.comment || '',
@@ -81,9 +88,9 @@ export async function syncGMBReviews(businessId: string) {
     }
 
     // 5. Update Business Stats
-    if (savedCount > 0) {
-        // Calculate average
-        const allReviews = await GBPReview.find({ locationId: locationName });
+    // Always fetch ALL reviews for this location for stats
+    const allReviews = await GBPReview.find({ locationId: dbLocationId });
+    if (allReviews.length > 0) {
         const avg = allReviews.reduce((acc, curr) => acc + curr.starRating, 0) / allReviews.length;
 
         await Business.updateOne(

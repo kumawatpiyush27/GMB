@@ -1,0 +1,86 @@
+﻿
+> client@0.1.0 build
+> next build
+
+node.exe : ΓÜá `eslint` 
+configuration in next.config.ts is 
+no longer supported. See more info 
+here: https://nextjs.org/docs/app/api
+-reference/cli/next#next-lint-options
+At line:1 char:1
++ & "C:\Program 
+Files\nodejs/node.exe" "C:\Program 
+Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpe 
+   cified: (ΓÜá `eslint` co...xt-li  
+  nt-options:String) [], RemoteExc   
+ eption
+    + FullyQualifiedErrorId : Native 
+   CommandError
+ 
+ΓÜá Invalid next.config.ts options 
+detected: 
+ΓÜá     Unrecognized key(s) in 
+object: 'eslint'
+ΓÜá See more info here: https://nextj
+s.org/docs/messages/invalid-next-conf
+ig
+Γû▓ Next.js 16.1.1 (Turbopack)
+- Environments: .env.local
+
+  Creating an optimized production build ...
+Γ£ô Compiled successfully in 20.2s
+  Running TypeScript ...
+  Collecting page data using 7 workers ...
+  Generating static pages using 7 workers (0/25) ...
+  Generating static pages using 7 workers (6/25) 
+  Generating static pages using 7 workers (12/25) 
+  Generating static pages using 7 workers (18/25) 
+Γ£ô Generating static pages using 7 workers (25/25) in 2.2s
+  Finalizing page optimization ...
+
+Route (app)
+Γöî Γùï /
+Γö£ Γùï /_not-found
+Γö£ Γùï /admin
+Γö£ ╞Æ /api/admin/business/[id]
+Γö£ ╞Æ /api/admin/business/toggle-status
+Γö£ ╞Æ /api/admin/businesses
+Γö£ ╞Æ /api/auth/callback
+Γö£ ╞Æ /api/auth/google
+Γö£ ╞Æ /api/auth/google/callback
+Γö£ ╞Æ /api/auth/login
+Γö£ ╞Æ /api/auth/register
+Γö£ ╞Æ /api/auth/signin
+Γö£ ╞Æ /api/business/[id]
+Γö£ ╞Æ /api/business/[id]/analytics
+Γö£ ╞Æ /api/business/[id]/gmb-locations
+Γö£ ╞Æ /api/business/[id]/qr
+Γö£ ╞Æ /api/business/[id]/refresh-stats
+Γö£ ╞Æ /api/business/[id]/reviews
+Γö£ ╞Æ /api/business/[id]/select-location
+Γö£ ╞Æ /api/business/[id]/sync-reviews
+Γö£ ╞Æ /api/business/[id]/update
+Γö£ ╞Æ /api/business/register
+Γö£ ╞Æ /api/cron/sync
+Γö£ ╞Æ /api/generate-reviews
+Γö£ ╞Æ /api/public/business/[id]
+Γö£ ╞Æ /api/public/business/[id]/track
+Γö£ Γùï /dashboard
+Γö£ Γùï /dashboard/auto-reply
+Γö£ Γùï /dashboard/qr
+Γö£ Γùï /dashboard/qrcode
+Γö£ Γùï /dashboard/reviews
+Γö£ Γùï /dashboard/rules
+Γö£ Γùï /dashboard/select-location
+Γö£ Γùï /login
+Γö£ Γùï /onboarding
+Γöö ╞Æ /r/[id]
+
+
+Γùï  (Static)   prerendered as static content
+╞Æ  (Dynamic)  server-rendered on demand
+
+
