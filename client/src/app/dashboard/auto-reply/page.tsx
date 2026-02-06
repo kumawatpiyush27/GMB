@@ -19,7 +19,7 @@ export default function AutoReplyPage() {
         // Get business ID from localStorage
         const storedId = localStorage.getItem('gmb_biz_id');
         if (!storedId) {
-            router.push('/onboarding');
+            setLoading(false);
             return;
         }
 
@@ -35,7 +35,7 @@ export default function AutoReplyPage() {
             })
             .catch(err => {
                 console.error(err);
-                router.push('/onboarding');
+                setLoading(false);
             });
 
         // Check for OAuth success/error
