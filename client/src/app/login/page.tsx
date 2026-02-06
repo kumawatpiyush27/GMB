@@ -1,15 +1,32 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 
-export default function LoginPage() {
+function LoginContent() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const [isLogin, setIsLogin] = useState(true);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const [blockedUser, setBlockedUser] = useState<any>(null); // For handling inactive accounts
     const [txnId, setTxnId] = useState('');
+
+    useEffect(() => {
+        // Handle Google Login Success
+        const success = searchParams.get('login_success');
+        const bizId = searchParams.get('biz_id');
+        const urlError = searchParams.get('error');
+
+        if (success === 'true' && bizId) {
+            localStorage.setItem('gmb_biz_id', bizId);
+            router.push('/dashboard');
+        }
+
+        if (urlError) {
+            setError(decodeURIComponent(urlError));
+        }
+    }, [searchParams, router]);
 
     const [form, setForm] = useState({
         email: '',
@@ -296,5 +313,13 @@ export default function LoginPage() {
                 </div>
             </div>
         </main>
+    );
+}
+
+export default function LoginPage() {
+    return (
+        <Suspense fallback={<div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0f172a', color: 'white' }}>Loading...</div>}>
+            <LoginContent />
+        </Suspense>
     );
 }
