@@ -69,17 +69,34 @@ export default function SelectLocation() {
             {loading && <div>Loading locations...</div>}
 
             {error && (
-                <div style={{ color: '#ef4444', background: 'rgba(239,68,68,0.1)', padding: '15px', borderRadius: '8px' }}>
+                <div style={{ color: '#ef4444', background: 'rgba(239,68,68,0.1)', padding: '15px', borderRadius: '8px', marginBottom: '20px' }}>
                     {error}
-                    {error.includes('auth') && (
-                        <button
-                            className="btn-primary"
-                            style={{ marginTop: '10px', display: 'block' }}
-                            onClick={() => router.push('/onboarding')}
-                        >
-                            Reconnect Google Account
-                        </button>
-                    )}
+                    <button
+                        className="btn-primary"
+                        style={{ marginTop: '10px', display: 'block' }}
+                        onClick={() => window.location.href = '/api/auth/google'}
+                    >
+                        Try Reconnecting Google Account
+                    </button>
+                </div>
+            )}
+
+            {!loading && !error && (
+                <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'flex-end' }}>
+                    <button
+                        onClick={() => window.location.href = '/api/auth/google'}
+                        style={{
+                            background: 'transparent',
+                            border: '1px solid rgba(255,255,255,0.2)',
+                            color: '#94a3b8',
+                            padding: '8px 16px',
+                            borderRadius: '8px',
+                            fontSize: '0.85rem',
+                            cursor: 'pointer'
+                        }}
+                    >
+                        🔄 Switch Google Account
+                    </button>
                 </div>
             )}
 
@@ -87,13 +104,20 @@ export default function SelectLocation() {
                 <div style={{ textAlign: 'center', marginTop: '50px' }}>
                     <h3 style={{ color: '#94a3b8' }}>No locations found.</h3>
                     <p style={{ color: '#64748b' }}>Please ensure your Google Account has verified business profiles.</p>
-                    <button
-                        className="btn-secondary"
-                        style={{ marginTop: '20px' }}
-                        onClick={() => router.push('/dashboard')}
-                    >
-                        Cancel / Return to Dashboard
-                    </button>
+                    <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginTop: '20px' }}>
+                        <button
+                            className="btn-primary"
+                            onClick={() => window.location.href = '/api/auth/google'}
+                        >
+                            Connect Different Account
+                        </button>
+                        <button
+                            className="btn-secondary"
+                            onClick={() => router.push('/dashboard')}
+                        >
+                            Go to Dashboard
+                        </button>
+                    </div>
                 </div>
             )}
 
@@ -111,14 +135,29 @@ export default function SelectLocation() {
                             cursor: 'pointer',
                             border: selecting === loc.name ? '2px solid #22c55e' : '1px solid rgba(255,255,255,0.1)',
                             transition: 'all 0.2s',
-                            opacity: selecting && selecting !== loc.name ? 0.5 : 1
+                            opacity: selecting && selecting !== loc.name ? 0.5 : 1,
+                            position: 'relative'
                         }}
                         onClick={() => !selecting && handleSelect(loc)}
                     >
-                        <h3 style={{ margin: '0 0 10px 0', fontSize: '1.2rem' }}>{loc.title}</h3>
-                        <p style={{ margin: '0 0 5px 0', color: '#cbd5e1' }}>{loc.storeCode ? `Store Code: ${loc.storeCode}` : 'No Store Code'}</p>
-                        <p style={{ margin: '0 0 15px 0', color: '#94a3b8', fontSize: '0.9rem' }}>
-                            {loc.metadata?.placeId || 'No Place ID'}
+                        {loc.accountName && (
+                            <div style={{
+                                position: 'absolute',
+                                top: '10px',
+                                right: '10px',
+                                fontSize: '0.7rem',
+                                color: '#94a3b8',
+                                background: 'rgba(255,255,255,0.05)',
+                                padding: '2px 6px',
+                                borderRadius: '4px'
+                            }}>
+                                {loc.accountName.split('/').pop()}
+                            </div>
+                        )}
+                        <h3 style={{ margin: '0 0 10px 0', fontSize: '1.2rem', paddingRight: '60px' }}>{loc.title}</h3>
+                        <p style={{ margin: '0 0 5px 0', color: '#cbd5e1', fontSize: '0.9rem' }}>{loc.storeCode ? `Store Code: ${loc.storeCode}` : 'No Store Code'}</p>
+                        <p style={{ margin: '0 0 15px 0', color: '#94a3b8', fontSize: '0.8rem' }}>
+                            Place ID: {loc.metadata?.placeId || 'Not linked'}
                         </p>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span style={{
@@ -130,7 +169,7 @@ export default function SelectLocation() {
                             }}>
                                 {loc.metadata?.verificationState || 'Unverified'}
                             </span>
-                            <button className="btn-primary" disabled={!!selecting}>
+                            <button className="btn-primary" disabled={!!selecting} style={{ padding: '6px 12px', fontSize: '0.9rem' }}>
                                 {selecting === loc.name ? 'Connecting...' : 'Select'}
                             </button>
                         </div>
