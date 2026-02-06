@@ -52,7 +52,7 @@ export async function GET(
         const locationPromises = accountsData.accounts.map(async (account: any) => {
             try {
                 const locRes = await fetch(
-                    `https://mybusinessbusinessinformation.googleapis.com/v1/${account.name}/locations?readMask=name,title,storeCode,metadata,profile,categories,phoneNumbers`,
+                    `https://mybusinessbusinessinformation.googleapis.com/v1/${account.name}/locations?readMask=name,title,storeCode,metadata,profile,categories,phoneNumbers&pageSize=100`,
                     { headers: { Authorization: `Bearer ${accessToken}` } }
                 );
                 const locData = await locRes.json();
