@@ -36,7 +36,7 @@ export async function GET(
         const accessToken = tokens.access_token;
 
         // 3. List Accounts
-        const accountsRes = await fetch('https://mybusinessaccountmanagement.googleapis.com/v1/accounts', {
+        const accountsRes = await fetch('https://mybusinessaccountmanagement.googleapis.com/v1/accounts?pageSize=100', {
             headers: { Authorization: `Bearer ${accessToken}` }
         });
         const accountsData = await accountsRes.json();
