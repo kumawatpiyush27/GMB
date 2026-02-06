@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { connectDB, Business } from '@/lib/db';
+import { connectDB, Business, GBPConnection } from '@/lib/db';
 
 export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
@@ -60,12 +60,21 @@ export async function GET(request: NextRequest) {
             });
         }
 
-        // 4. Redirect to Dashboard with success
-        // In a real app, you'd set a session cookie here. 
-        // For this app's pattern, we'll pass the ID to be set in localStorage.
-        const response = NextResponse.redirect(`${baseUrl}/dashboard`);
-        // We can't easily wait for localStorage on redirect, so we'll use a middle page or query param
-        return NextResponse.redirect(`${baseUrl}/login?login_success=true&biz_id=${business.id}`);
+        // 4. Save Google Tokens for GMB access
+        if (tokens.refresh_token) {
+            await GBPConnection.findOneAndUpdate(
+                { businessId: business.id },
+                {
+                    refreshToken: tokens.refresh_token,
+                    googleAccountId: userData.id,
+                    accountName: userData.name
+                },
+                { upsert: true }
+            );
+        }
+
+        // 5. Redirect to Dashboard with success - tell login page to go to select-location
+        return NextResponse.redirect(`${baseUrl}/login?login_success=true&biz_id=${business.id}&redirect_to=/dashboard/select-location`);
 
     } catch (err: any) {
         console.error('Google Callback Error:', err);

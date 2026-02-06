@@ -16,11 +16,12 @@ function LoginContent() {
         // Handle Google Login Success
         const success = searchParams.get('login_success');
         const bizId = searchParams.get('biz_id');
+        const redirectTo = searchParams.get('redirect_to') || '/dashboard';
         const urlError = searchParams.get('error');
 
         if (success === 'true' && bizId) {
             localStorage.setItem('gmb_biz_id', bizId);
-            router.push('/dashboard');
+            router.push(redirectTo);
         }
 
         if (urlError) {
