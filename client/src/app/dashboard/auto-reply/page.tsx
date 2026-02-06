@@ -51,12 +51,12 @@ function AutoReplyContent() {
     }, [searchParams]);
 
     const handleConnectGoogle = () => {
-        if (!business?._id) return;
-        window.location.href = `${API_URL}/auth/google?businessId=${business._id}`;
+        if (!business?.id) return;
+        window.location.href = `${API_URL}/auth/google?businessId=${business.id}`;
     };
 
     const handleSaveConfig = async () => {
-        const response = await fetch(`${API_URL}/business/${business._id}/auto-reply-config`, {
+        const response = await fetch(`${API_URL}/business/${business.id}/auto-reply-config`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json'

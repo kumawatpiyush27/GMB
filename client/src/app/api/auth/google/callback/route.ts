@@ -17,6 +17,7 @@ export async function GET(request: NextRequest) {
     }
 
     try {
+        const state = searchParams.get('state');
         // 1. Exchange Code for Tokens
         const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
             method: 'POST',
@@ -44,7 +45,16 @@ export async function GET(request: NextRequest) {
         await connectDB();
 
         // 3. Find or Create Business/User
-        let business = await Business.findOne({ email: userData.email });
+        // If state (businessId) is provided, prioritize it
+        let business = null;
+        if (state) {
+            business = await Business.findOne({ id: state });
+        }
+
+        // Fallback to email if business not found by state
+        if (!business) {
+            business = await Business.findOne({ email: userData.email });
+        }
 
         if (!business) {
             // Create new business if signup

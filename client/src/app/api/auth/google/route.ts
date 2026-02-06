@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
+    const searchParams = request.nextUrl.searchParams;
+    const businessId = searchParams.get('businessId');
+
     const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
     const REDIRECT_URI = `${request.nextUrl.origin}/api/auth/google/callback`;
 
@@ -18,7 +21,8 @@ export async function GET(request: NextRequest) {
             response_type: 'code',
             scope: scopes,
             access_type: 'offline',
-            prompt: 'consent'
+            prompt: 'consent',
+            state: businessId || ''
         }).toString();
 
     return NextResponse.redirect(authUrl);
