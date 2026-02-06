@@ -252,6 +252,45 @@ export default function LoginPage() {
                     </button>
                 </form>
 
+                {/* Google Login Option */}
+                <div style={{ margin: '20px 0', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.1)' }}></div>
+                    <span style={{ color: '#64748b', fontSize: '0.85rem' }}>OR</span>
+                    <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.1)' }}></div>
+                </div>
+
+                <button
+                    type="button"
+                    onClick={() => {
+                        // Redirect to Google OAuth
+                        window.location.href = '/api/auth/google';
+                    }}
+                    style={{
+                        width: '100%',
+                        padding: '12px',
+                        background: 'white',
+                        color: '#333',
+                        border: 'none',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        fontWeight: '600',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '10px',
+                        transition: 'transform 0.2s'
+                    }}
+                    onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.02)'}
+                    onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                >
+                    <img
+                        src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg"
+                        width="20"
+                        alt="Google"
+                    />
+                    Continue with Google
+                </button>
+
                 <div style={{ marginTop: '20px', textAlign: 'center', fontSize: '0.8rem', color: '#64748b' }}>
                     Protected by reCAPTCHA and Subject to the Privacy Policy.
                 </div>
