@@ -51,7 +51,20 @@ const BusinessSchema: Schema = new Schema({
         lastUpdated: { type: String, default: new Date().toISOString() }
     },
     email: { type: String, unique: true, sparse: true },
-    password: { type: String, select: false }
+    password: { type: String, select: false },
+    // Google OAuth for Auto-Reply
+    googleAccessToken: { type: String, select: false },
+    googleRefreshToken: { type: String, select: false },
+    googleLocationId: { type: String },
+    googleLocationName: { type: String },
+    autoReplyEnabled: { type: Boolean, default: false },
+    autoReplyConfig: {
+        mode: { type: String, default: 'manual' }, // 'manual' | 'auto-4-5-stars' | 'auto-all'
+        minStars: { type: Number, default: 4 },
+        dailyLimit: { type: Number, default: 20 },
+        repliedToday: { type: Number, default: 0 },
+        lastReplyDate: { type: String }
+    }
 }, { timestamps: true });
 
 // --- 1. Connection (Auth) ---

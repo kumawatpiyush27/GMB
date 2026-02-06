@@ -53,58 +53,15 @@ export async function GET(request: NextRequest) {
             throw new Error(tokens.error_description || tokens.error);
         }
 
-        // --- 1. Fetch Account Info ---
+        // --- 1. Save Connection & Tokens (Minimal) ---
+        // We fetch accounts later in the selection screen to handle multiple accounts properly
         await connectDB();
 
-        const accountsRes = await fetch('https://mybusinessaccountmanagement.googleapis.com/v1/accounts', {
-            headers: { Authorization: `Bearer ${tokens.access_token}` }
-        });
-        const accountsData = await accountsRes.json();
-
-        const account = accountsData.accounts?.find((a: any) => a.type !== 'PERSONAL') || accountsData.accounts?.[0];
-        if (!account) throw new Error('No Google Business Profile account found.');
-
-        const googleAccountId = account.name; // accounts/{id}
-
-        // --- 2. Fetch Locations ---
-        const locationsRes = await fetch(
-            `https://mybusinessbusinessinformation.googleapis.com/v1/${googleAccountId}/locations?readMask=name,title,storeCode,metadata,profile,categories,phoneNumbers`,
-            { headers: { Authorization: `Bearer ${tokens.access_token}` } }
-        );
-        const locationsData = await locationsRes.json();
-        const locations = locationsData.locations || [];
-
-        // Select Location Logic
-        let selectedLocation = null;
-
-        if (shopCode) {
-            // Priority 1: Match Shop/Store Code exactly
-            selectedLocation = locations.find((l: any) => l.storeCode === shopCode);
-            if (selectedLocation) {
-                console.log(`Connected via Shop Code match: ${shopCode}`);
-            } else {
-                console.warn(`Shop Code '${shopCode}' not found among ${locations.length} locations. Falling back to default.`);
-            }
-        }
-
-        // Priority 2: Verified Location
-        if (!selectedLocation) {
-            selectedLocation = locations.find((l: any) => l.metadata?.verificationState === 'VERIFIED');
-        }
-
-        // Priority 3: Fallback to first
-        if (!selectedLocation && locations.length > 0) {
-            selectedLocation = locations[0];
-        }
-
-        // --- 3. Save Connection & Tokens ---
-        // We use the specialized GBPConnection model for this
         await GBPConnection.findOneAndUpdate(
             { businessId },
             {
                 refreshToken: tokens.refresh_token || 'EXISTING_OR_MISSING',
-                googleAccountId: googleAccountId,
-                accountName: account.accountName
+                // We'll update googleAccountId and accountName when they actually select a location
             },
             { upsert: true }
         );
@@ -113,7 +70,7 @@ export async function GET(request: NextRequest) {
             console.warn('No refresh_token returned. User might need to re-auth for long-term access.');
         }
 
-        // --- 4. Initialize Default Rules ---
+        // --- 2. Initialize Default Rules ---
         await ReplyRule.findOneAndUpdate(
             { businessId },
             {
@@ -125,32 +82,8 @@ export async function GET(request: NextRequest) {
             { upsert: true }
         );
 
-        // --- 5. Update Business Profile ---
-        const updateData: any = {
-            connected: true,
-            accessToken: tokens.access_token // Store short-lived token for immediate use
-        };
-
-        if (selectedLocation) {
-            const placeId = selectedLocation.metadata?.placeId || '';
-            const reviewUrl = placeId ? `https://search.google.com/local/writereview?placeid=${placeId}` : '';
-
-            // Update identifying info if found
-            updateData.placeId = placeId;
-            updateData.review_url = reviewUrl;
-
-            if (selectedLocation.title) updateData.name = selectedLocation.title;
-            if (selectedLocation.categories?.[0]?.displayName) updateData.category = selectedLocation.categories[0].displayName;
-            if (selectedLocation.storeCode) updateData.location = selectedLocation.storeCode;
-        }
-
-        await Business.findOneAndUpdate(
-            { id: businessId },
-            { $set: updateData }
-        );
-
-        // Redirect back to dashboard
-        return NextResponse.redirect(new URL('/dashboard', request.url));
+        // --- 3. Redirect to Location Selection ---
+        return NextResponse.redirect(new URL('/dashboard/select-location', request.url));
 
     } catch (err: any) {
         console.error('OAuth Error:', err);

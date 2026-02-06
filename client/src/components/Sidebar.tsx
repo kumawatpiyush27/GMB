@@ -18,6 +18,7 @@ export default function Sidebar() {
                 <SidebarLink href="/dashboard" label="GMB Connection" />
                 <SidebarLink href="/dashboard/qrcode" label="QR Studio" />
                 <SidebarLink href="/dashboard/reviews" label="Reviews Inbox" />
+                <SidebarLink href="/dashboard/auto-reply" label="Auto-Reply Rules" />
                 <SidebarLink href="/" label="Logout / Public" />
             </nav>
         </aside>
