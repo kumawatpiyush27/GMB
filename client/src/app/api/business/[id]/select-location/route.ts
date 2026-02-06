@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDB, GBPConnection, Business, ReplyRule } from '@/lib/db';
+import { syncGMBReviews } from '@/lib/gmb-sync';
 
 export async function POST(
     request: NextRequest,
@@ -72,6 +73,14 @@ export async function POST(
             { id: businessId },
             { $set: updateData }
         );
+
+        // 4. Initial Review Sync (Optional but better for UX)
+        try {
+            await syncGMBReviews(businessId);
+        } catch (e) {
+            console.error('Initial sync failed:', e);
+            // Don't fail the whole request if sync fails
+        }
 
         return NextResponse.json({ success: true });
 

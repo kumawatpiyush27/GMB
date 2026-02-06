@@ -6,31 +6,26 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     await connectDB();
 
-    // 1. Find Location ID for this Business
-    const location = await GBPLocation.findOne({ businessId: id });
+    // 1. Get Business Data
+    const biz = await getBusiness(id);
+    if (!biz) {
+        return NextResponse.json({ error: 'Business not found' }, { status: 404 });
+    }
 
-    if (!location) {
-        // Fallback: If no synced location (or using Place ID mode without full location sync), 
-        // we might check if there are reviews with locationId matching the business's placeId.
-        // But for now, let's try to query by locationId OR just return empty if not found.
+    // 2. Fetch Reviews by Google Location ID (GMB API) or Place ID (Places API)
+    const queryId = biz.googleLocationId || biz.placeId;
 
-        // Alternative: Query reviews where locationId is the PlaceID stored in Business?
-        // Let's stick to the automation logic: automation saves reviews with locationId = biz.placeId
-        // So we should query for that.
-
-        const biz = await getBusiness(id);
-
-        if (biz && biz.placeId) {
-            const reviews = await GBPReview.find({ locationId: biz.placeId })
-                .sort({ createTime: -1 });
-            return NextResponse.json(reviews);
-        }
-
+    if (!queryId) {
         return NextResponse.json([]);
     }
 
-    // 2. Fetch Reviews
-    const reviews = await GBPReview.find({ locationId: location.locationId })
-        .sort({ createTime: -1 }); // Newest first
+    // 3. Fetch Reviews
+    const reviews = await GBPReview.find({
+        $or: [
+            { locationId: queryId },
+            { locationId: biz.placeId }
+        ]
+    }).sort({ createTime: -1 });
+
     return NextResponse.json(reviews);
 }

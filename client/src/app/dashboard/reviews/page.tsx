@@ -7,39 +7,72 @@ export default function ReviewsInbox() {
     const [reviews, setReviews] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
+    const [syncing, setSyncing] = useState(false);
+
+    const fetchReviews = async () => {
+        const id = localStorage.getItem('gmb_biz_id');
+        if (!id) return;
+        setLoading(true);
+        try {
+            const r = await fetch(`${API_URL}/business/${id}/reviews`);
+            const data = await r.json();
+            setReviews(Array.isArray(data) ? data : []);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSync = async () => {
         const id = localStorage.getItem('gmb_biz_id');
         if (!id) return;
 
-        fetch(`${API_URL}/business/${id}/reviews`)
-            .then(r => r.json())
-            .then(data => {
-                setReviews(Array.isArray(data) ? data : []);
-                setLoading(false);
-            })
-            .catch(err => {
-                console.error(err);
-                setLoading(false);
-            });
+        setSyncing(true);
+        try {
+            const res = await fetch(`${API_URL}/business/${id}/sync-reviews`, { method: 'POST' });
+            if (res.ok) {
+                await fetchReviews();
+            } else {
+                const data = await res.json();
+                alert(`Sync failed: ${data.error || 'Unknown error'}`);
+            }
+        } catch (e) {
+            alert('Error connecting to sync server');
+        } finally {
+            setSyncing(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchReviews();
     }, []);
 
-    if (loading) return <div>Loading Reviews...</div>;
+    if (loading && reviews.length === 0) return (
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '100px' }}>
+            <div className="glass-panel" style={{ padding: '20px' }}>Loading Reviews...</div>
+        </div>
+    );
 
     return (
         <div className="animate-fade-in" style={{ maxWidth: '1000px', margin: '0 auto' }}>
-            <h1 className="gradient-text" style={{ fontSize: '2rem', marginBottom: '30px' }}>Reviews Inbox</h1>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
+                <h1 className="gradient-text" style={{ fontSize: '2rem', margin: 0 }}>Reviews Inbox</h1>
+                <button
+                    className="btn-primary"
+                    onClick={handleSync}
+                    disabled={syncing}
+                    style={{ background: syncing ? '#4b5563' : undefined }}
+                >
+                    {syncing ? '🔄 Syncing...' : '🔄 Refresh Reviews'}
+                </button>
+            </div>
 
             {reviews.length === 0 ? (
                 <div className="glass-panel" style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
-                    <h2>No reviews fetched yet.</h2>
-                    <p>Make sure you have connected your Google Business Profile and the sync job has run.</p>
-                    <button
-                        className="btn-primary"
-                        style={{ marginTop: '20px' }}
-                        onClick={() => window.open(`${API_URL}/cron/sync`, '_blank')}
-                    >
-                        Force Sync Now
-                    </button>
+                    <div style={{ fontSize: '3rem', marginBottom: '20px' }}>📥</div>
+                    <h2>No reviews found.</h2>
+                    <p>Click the sync button above to fetch reviews from your Google Business Profile.</p>
                 </div>
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
