@@ -57,6 +57,7 @@ const BusinessSchema: Schema = new Schema({
     googleRefreshToken: { type: String, select: false },
     googleLocationId: { type: String },
     googleLocationName: { type: String },
+    storeCode: { type: String },
     autoReplyEnabled: { type: Boolean, default: false },
     autoReplyConfig: {
         mode: { type: String, default: 'manual' }, // 'manual' | 'auto-4-5-stars' | 'auto-all'

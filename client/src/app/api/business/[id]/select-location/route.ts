@@ -47,7 +47,22 @@ export async function POST(
 
         if (location.title) updateData.name = location.title;
         if (location.categories?.[0]?.displayName) updateData.category = location.categories[0].displayName;
-        if (location.storeCode) updateData.location = location.storeCode;
+
+        // Use Address for location display instead of storeCode
+        const address = location.storefrontAddress;
+        let locationDisplay = '';
+        if (address) {
+            const city = address.locality || '';
+            const state = address.administrativeArea || '';
+            locationDisplay = city && state ? `${city}, ${state}` : (city || state || '');
+        }
+
+        if (!locationDisplay && location.storeCode) {
+            locationDisplay = location.storeCode;
+        }
+
+        if (locationDisplay) updateData.location = locationDisplay;
+        if (location.storeCode) updateData.storeCode = location.storeCode;
 
         // Also save the Google Location ID specifically
         updateData.googleLocationId = location.name;

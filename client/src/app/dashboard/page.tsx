@@ -165,12 +165,9 @@ export default function Dashboard() {
                             {status.secondary_categories?.length > 0 && (
                                 <p><strong>Secondary Cats:</strong> {status.secondary_categories.join(', ')}</p>
                             )}
-                            {/* Assuming shopCode isn't in 'status' type yet but might arrive from API if backend sends it. 
-                                Since we didn't add shopCode to Business Schema overtly in conversation, 
-                                it's stored in 'location' or separately. 
-                                Based on `server` code migration, we stored `storeCode` into `location` field of Business.
-                            */}
-                            <p><strong>Store/Shop Code:</strong> {status.location}</p>
+                            {status.storeCode && (
+                                <p><strong>Store/Shop Code:</strong> {status.storeCode}</p>
+                            )}
                             <p><strong>Keywords:</strong> {status.seo_keywords?.join(', ')}</p>
                         </div>
 
