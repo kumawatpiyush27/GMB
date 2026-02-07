@@ -42,6 +42,17 @@ export async function GET(request: NextRequest) {
 
         if (!userData.email) throw new Error('Could not get email from Google');
 
+        // 3. Verify Token & Access to Business Profile API
+        // This ensures the token is valid for the required scope
+        const checkRes = await fetch('https://businessprofile.googleapis.com/v1/accounts', {
+            headers: { Authorization: `Bearer ${tokens.access_token}` }
+        });
+
+        if (!checkRes.ok) {
+            if (checkRes.status === 403) throw new Error('Missing Business Profile permissions. Please ensure you are an owner/manager.');
+            throw new Error(`Business Profile API Error: ${checkRes.statusText}`);
+        }
+
         await connectDB();
 
         // 3. Find or Create Business/User

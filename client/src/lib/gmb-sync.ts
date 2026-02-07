@@ -14,6 +14,9 @@ export async function syncGMBReviews(businessId: string) {
         throw new Error('Google Account not connected');
     }
 
+    // NOTE: Ignore Google Cloud Console UI "API not enabled" errors.
+    // Reviews are fetched directly using the Business Profile API (v1).
+
     // 2. Get Access Token using Refresh Token
     const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
@@ -33,31 +36,39 @@ export async function syncGMBReviews(businessId: string) {
 
     const accessToken = tokens.access_token;
 
-    // 3. Construct Correct Resource Name for GMB v4 Review API
-    // biz.googleLocationId is usually "locations/LOC_ID"
-    // connection.googleAccountId is usually "accounts/ACC_ID"
-    // API expects: "accounts/ACC_ID/locations/LOC_ID"
+    // 3. Fetch Reviews using Business Profile API
+    // GET https://businessprofile.googleapis.com/v1/locations/{locationId}/reviews
 
-    let resourcePath = biz.googleLocationId;
-    if (connection.googleAccountId && !resourcePath.includes('accounts/')) {
-        resourcePath = `${connection.googleAccountId}/${biz.googleLocationId}`;
+    // biz.googleLocationId is expected to be "locations/LOC_ID"
+    const locationResource = biz.googleLocationId;
+
+    // Ensure we are using the correct resource format
+    if (!locationResource.startsWith('locations/')) {
+        console.warn(`Warning: googleLocationId ${locationResource} might not be a valid resource name.`);
     }
 
-    console.log(`Fetching reviews for resource: ${resourcePath}`);
+    console.log(`Fetching reviews for: ${locationResource}`);
 
-    const reviewsUrl = `https://mybusiness.googleapis.com/v4/${resourcePath}/reviews`;
+    const reviewsUrl = `https://businessprofile.googleapis.com/v1/${locationResource}/reviews?pageSize=50`;
 
     const reviewsRes = await fetch(reviewsUrl, {
         headers: { Authorization: `Bearer ${accessToken}` }
     });
 
-    const reviewsData = await reviewsRes.json();
+    // 6. Handle errors explicitly
+    if (reviewsRes.status === 401) throw new Error('401 Unauthorized: Token expired or invalid');
+    if (reviewsRes.status === 403) throw new Error('403 Forbidden: Missing scope or user not owner/manager');
+    if (reviewsRes.status === 404) throw new Error(`404 Not Found: Location ${locationResource} not found`);
 
-    if (reviewsData.error) {
-        console.error('GMB Review Sync API Error:', reviewsData.error);
-        throw new Error(`GMB API Error: ${reviewsData.error.message}`);
+    if (!reviewsRes.ok) {
+        const errorData = await reviewsRes.json().catch(() => ({}));
+        console.error('GMB Review Sync API Error:', errorData);
+        throw new Error(`GMB API Error: ${reviewsRes.status} ${errorData.error?.message || reviewsRes.statusText}`);
     }
 
+    const reviewsData = await reviewsRes.json();
+
+    // Handle Empty reviews case
     const gmbReviews = reviewsData.reviews || [];
     console.log(`Fetched ${gmbReviews.length} reviews for ${biz.name}`);
     let savedCount = 0;
