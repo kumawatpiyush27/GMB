@@ -123,23 +123,25 @@ export async function syncGMBReviews(businessId: string) {
     console.log(`[Sync] Fetching reviews for verified resource: ${verifiedResourceName}`);
     console.log(`[Sync] Using account: ${finalAccountName}`);
 
-    // CRITICAL FIX: Business Profile API v1 requires account context in the path
-    // Incorrect: https://businessprofile.googleapis.com/v1/locations/{locationId}/reviews
-    // Correct: https://businessprofile.googleapis.com/v1/{accountName}/locations/{locationId}/reviews
+    // CRITICAL FIX: Google Business Profile Reviews API still uses v4, NOT v1!
+    // v1 API is for account/location management, but reviews endpoint is still on v4
+    // Correct format: https://mybusiness.googleapis.com/v4/accounts/{accountId}/locations/{locationId}/reviews
 
-    // Extract location ID from the full resource name (e.g., "locations/12345" -> "12345")
+    // Extract account ID and location ID from resource names
+    // finalAccountName format: "accounts/123456789"
+    // verifiedResourceName format: "locations/987654321"
+    const accountId = finalAccountName.split('/').pop();
     const locationId = verifiedResourceName.split('/').pop();
 
-    // Build the correct URL with account context
-    const reviewsUrl = `https://businessprofile.googleapis.com/v1/${finalAccountName}/locations/${locationId}/reviews?pageSize=50`;
-    console.log(`[Sync] Review URL: ${reviewsUrl}`);
+    // Build the correct v4 URL
+    const reviewsUrl = `https://mybusiness.googleapis.com/v4/accounts/${accountId}/locations/${locationId}/reviews?pageSize=50`;
+    console.log(`[Sync] Review URL (v4): ${reviewsUrl}`);
 
     const reviewsRes = await fetch(reviewsUrl, {
         headers: { Authorization: `Bearer ${accessToken}` }
     });
 
     console.log(`[Sync] Review API Status: ${reviewsRes.status}`);
-
     // Handle Review-specific errors
     if (reviewsRes.status === 404) {
         const errBody = await reviewsRes.text();
