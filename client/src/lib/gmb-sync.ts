@@ -72,10 +72,38 @@ export async function syncGMBReviews(businessId: string) {
     }
 
     // 4. FETCH PHASE: Get Reviews from Validated Location
-    console.log(`[Sync] Fetching reviews for verified resource: ${verifiedResourceName}`);
+    // We found the location in a specific account.
+    // The v1 businessprofile API seems unstable for some accounts (returning 404 even after verification).
+    // Fallback: Construct the v4 URL which is account-scoped and often more reliable.
+    // Format: https://mybusiness.googleapis.com/v4/{accountName}/{locationName}/reviews
 
-    // GET https://businessprofile.googleapis.com/v1/locations/{locationId}/reviews
-    const reviewsUrl = `https://businessprofile.googleapis.com/v1/${verifiedResourceName}/reviews?pageSize=50`;
+    // verifiedResourceName is "locations/..."
+    // We need the account name where we found it.
+    // Since we found it in the loop, let's track the account name there.
+
+    // Rerun search to capture account name (or optimize later, but for now safety first)
+    let finalAccountName = '';
+    for (const account of accounts) {
+        try {
+            const locs = await fetchLocations(accessToken, account.name);
+            if (locs.find(l => l.name === verifiedResourceName)) {
+                finalAccountName = account.name;
+                break;
+            }
+        } catch (e) { }
+    }
+
+    let reviewsUrl = '';
+    if (finalAccountName) {
+        console.log(`[Sync] Constructing v4 URL with Account: ${finalAccountName}`);
+        reviewsUrl = `https://mybusiness.googleapis.com/v4/${finalAccountName}/${verifiedResourceName}/reviews?pageSize=50`;
+    } else {
+        // Fallback to v1 if for some reason we lost the account context (shouldn't happen)
+        console.warn('[Sync] Could not re-verify account context, trying v1 fallback...');
+        reviewsUrl = `https://businessprofile.googleapis.com/v1/${verifiedResourceName}/reviews?pageSize=50`;
+    }
+
+    console.log(`[Sync] Fetching reviews from: ${reviewsUrl}`);
 
     const reviewsRes = await fetch(reviewsUrl, {
         headers: { Authorization: `Bearer ${accessToken}` }
