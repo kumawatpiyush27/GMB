@@ -1,156 +1,123 @@
 import { Business, GBPConnection, GBPReview, connectDB } from './db';
 
+// --- Interfaces for Type Safety ---
+interface GmbAccount {
+    name: string; // "accounts/..."
+    accountName: string; // Display name
+    type: string; // PERSONAL, LOCATION_GROUP, ORGANIZATION
+    role: string; // PRIMARY_OWNER, OWNER, MANAGER, SITE_MANAGER
+    state: { status: string };
+}
+
+interface GmbLocation {
+    name: string; // "locations/..."
+    title: string;
+    metadata?: {
+        placeId?: string;
+        verificationState?: string; // VERIFIED, UNVERIFIED, PENDING
+    };
+}
+
+/**
+ * Syncs Google Business Profile reviews for a given business.
+ * Strictly enforces Account -> Location -> Review hierarchy to prevent 404s.
+ */
 export async function syncGMBReviews(businessId: string) {
     await connectDB();
 
-    // 1. Get Business and Connection
+    // 1. Load Business & Connection Context
     const biz = await Business.findOne({ id: businessId });
-    if (!biz || !biz.googleLocationId) {
-        throw new Error('Business not connected to a GMB location');
-    }
+    if (!biz || !biz.googleLocationId) throw new Error('Business not connected to a GMB location');
 
     const connection = await GBPConnection.findOne({ businessId });
-    if (!connection || !connection.refreshToken) {
-        throw new Error('Google Account not connected');
-    }
+    if (!connection || !connection.refreshToken) throw new Error('Google Account not connected');
 
-    // NOTE: Ignore Google Cloud Console UI "API not enabled" errors.
-    // Reviews are fetched directly using the Business Profile API (v1).
+    // 2. Refresh Access Token (Store validation happens in discovery)
+    const accessToken = await getAccessToken(connection.refreshToken);
 
-    // 2. Get Access Token using Refresh Token
-    const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-            client_id: process.env.GOOGLE_CLIENT_ID!,
-            client_secret: process.env.GOOGLE_CLIENT_SECRET!,
-            refresh_token: connection.refreshToken,
-            grant_type: 'refresh_token'
-        })
-    });
+    // 3. DISCOVERY PHASE: Validate Ownership & Location Existence
+    console.log(`[Sync] Discovery started for Business: ${biz.name} (Target: ${biz.googleLocationId})`);
 
-    const tokens = await tokenRes.json();
-    if (tokens.error) {
-        throw new Error(`Auth failed: ${tokens.error_description || tokens.error}`);
-    }
+    const accounts = await fetchAccounts(accessToken);
+    if (accounts.length === 0) throw new Error('No Google Business Profile accounts found.');
 
-    const accessToken = tokens.access_token;
+    let verifiedResourceName = '';
+    let ownerAccessConfirmed = false;
 
-    // 3. DISCOVERY_PHASE: Verify Location Existence
-    // We must strictly follow: Accounts -> Locations -> Reviews
-    // This prevents "404 Not Found" by ensuring the location ID is valid for the current user agent.
-
-    // Step A: Fetch all Accounts
-    // NOTE: We use the dedicated Account Management API because strict businessprofile.googleapis.com/v1/accounts does not exist.
-    // GET https://mybusinessaccountmanagement.googleapis.com/v1/accounts
-    const accountsRes = await fetch('https://mybusinessaccountmanagement.googleapis.com/v1/accounts', {
-        headers: { Authorization: `Bearer ${accessToken}` }
-    });
-
-    if (!accountsRes.ok) {
-        if (accountsRes.status === 401) throw new Error('401 Unauthorized: Token expired');
-        throw new Error(`Failed to fetch accounts: ${accountsRes.status} ${accountsRes.statusText}`);
-    }
-
-    const accountsData = await accountsRes.json();
-    const accounts = accountsData.accounts || [];
-
-    if (accounts.length === 0) {
-        throw new Error('No Business Profile accounts found for this user.');
-    }
-
-    let verifiedLocationName = '';
-    const targetLocationId = biz.googleLocationId; // e.g., "locations/123456"
-
-    console.log(`Starting discovery for target: ${targetLocationId} across ${accounts.length} accounts...`);
-
-    // Step B: Iterate Accounts to find the Target Location
+    // Iterate accounts to find the one that owns this location
     for (const account of accounts) {
-        const accountName = account.name; // e.g., "accounts/112233..."
+        console.log(`[Sync] Checking Account: ${account.name} (Role: ${account.role})`);
 
-        // Fetch locations for this specific account
-        // GET https://mybusinessbusinessinformation.googleapis.com/v1/{accountName}/locations
-        const locsUrl = `https://mybusinessbusinessinformation.googleapis.com/v1/${accountName}/locations?readMask=name&pageSize=100`;
+        // STRICT RULE: Only allow OWNER or PRIMARY_OWNER
+        // Managers are often restricted from certain API actions or have read-only views that might fail complex operations.
+        // User specifically requested: "If user is MANAGER only -> Error: Owner access required"
+        if (account.role !== 'OWNER' && account.role !== 'PRIMARY_OWNER') {
+            console.warn(`[Sync] ⚠️ Skipping account ${account.name}: Role is ${account.role} (Req: OWNER/PRIMARY_OWNER)`);
+            continue;
+        }
 
         try {
-            const locsRes = await fetch(locsUrl, {
-                headers: { Authorization: `Bearer ${accessToken}` }
-            });
+            // Fetch locations for this specific VALID account
+            const locations = await fetchLocations(accessToken, account.name);
 
-            if (locsRes.status === 403) {
-                console.warn(`Skipping account ${accountName}: 403 Forbidden`);
-                continue;
-            }
-
-            if (!locsRes.ok) {
-                console.warn(`Error fetching locations for ${accountName}: ${locsRes.status}`);
-                continue;
-            }
-
-            const locsData = await locsRes.json();
-            const locations = locsData.locations || [];
-
-            // Check if our target location is in this list via strict string matching
-            const match = locations.find((l: any) => l.name === targetLocationId);
+            // Check if our target location exists in this account's graph
+            const match = locations.find(l => l.name === biz.googleLocationId);
 
             if (match) {
-                verifiedLocationName = match.name;
-                console.log(`✅ Success: Found location ${verifiedLocationName} in account ${accountName}`);
-                break; // Found it, stop searching
+                console.log(`[Sync] ✅ Success: Location found in account ${account.name}`);
+                verifiedResourceName = match.name;
+                ownerAccessConfirmed = true;
+                break; // Stop discovery, we found it
             }
-
-        } catch (err) {
-            console.error(`Error checking account ${accountName}:`, err);
+        } catch (err: any) {
+            console.error(`[Sync] Error checking locations for ${account.name}:`, err.message);
+            // Continue to next account in case location is elsewhere
         }
     }
 
-    // Step C: Validate Discovery Result
-    if (!verifiedLocationName) {
-        // If we checked all accounts and didn't find the location, it's truly inaccessible
-        console.error(`❌ Critical: Location ${targetLocationId} not found in any linked account.`);
-        throw new Error(`Location not found. Please ensure you are an owner/manager of this location in Google Business Profile.`);
+    if (!verifiedResourceName) {
+        if (!ownerAccessConfirmed) {
+            throw new Error('Access Denied: You must be an OWNER or PRIMARY_OWNER of this location. Manager access is insufficient for this sync.');
+        }
+        throw new Error(`Location ${biz.googleLocationId} not found in any linked PRO account.`);
     }
 
-    // 4. Fetch Reviews using VERIFIED Location Name
-    // GET https://businessprofile.googleapis.com/v1/locations/{locationId}/reviews
-    console.log(`Fetching reviews for verified resource: ${verifiedLocationName}`);
+    // 4. FETCH PHASE: Get Reviews from Validated Location
+    console.log(`[Sync] Fetching reviews for verified resource: ${verifiedResourceName}`);
 
-    const reviewsUrl = `https://businessprofile.googleapis.com/v1/${verifiedLocationName}/reviews?pageSize=50`;
+    // GET https://businessprofile.googleapis.com/v1/locations/{locationId}/reviews
+    const reviewsUrl = `https://businessprofile.googleapis.com/v1/${verifiedResourceName}/reviews?pageSize=50`;
 
     const reviewsRes = await fetch(reviewsUrl, {
         headers: { Authorization: `Bearer ${accessToken}` }
     });
 
-    // Handle Review-specific errors
     if (reviewsRes.status === 404) {
-        throw new Error(`404 Not Found: Google API claims location doesn't exist despite verification.`);
+        // This should theoretically not happen if discovery passed, but API consistency varies
+        throw new Error('404 Not Found during review fetch (Unexpected after verification).');
     }
 
     if (!reviewsRes.ok) {
-        const errorData = await reviewsRes.json().catch(() => ({}));
-        throw new Error(`GMB Review API Error: ${reviewsRes.status} ${errorData.error?.message || reviewsRes.statusText}`);
+        const err = await reviewsRes.json().catch(() => ({}));
+        throw new Error(`Review API Error: ${reviewsRes.status} ${err.error?.message || reviewsRes.statusText}`);
     }
 
     const reviewsData = await reviewsRes.json();
-
-    // Handle Empty reviews case
     const gmbReviews = reviewsData.reviews || [];
-    console.log(`Fetched ${gmbReviews.length} reviews for ${biz.name}`);
-    let savedCount = 0;
 
-    // We use biz.googleLocationId in the local DB for querying
+    console.log(`[Sync] Fetched ${gmbReviews.length} reviews.`);
+
+    // 5. DATABASE UPDATE PHASE
+    let savedCount = 0;
     const dbLocationId = biz.googleLocationId;
 
-    // 4. Upsert into Database (Key: reviewId)
     for (const r of gmbReviews) {
-        const starRating = convertGMBRating(r.starRating);
-
         await GBPReview.findOneAndUpdate(
             { reviewId: r.reviewId },
             {
                 locationId: dbLocationId,
                 reviewerName: r.reviewer?.displayName || 'Anonymous',
-                starRating: starRating,
+                starRating: convertGMBRating(r.starRating),
                 comment: r.comment || '',
                 createTime: new Date(r.createTime),
                 updateTime: new Date(r.updateTime),
@@ -163,12 +130,69 @@ export async function syncGMBReviews(businessId: string) {
         savedCount++;
     }
 
-    // 5. Update Business Stats
-    // Always fetch ALL reviews for this location for stats
-    const allReviews = await GBPReview.find({ locationId: dbLocationId });
+    // Update Aggregates
+    await updateBusinessStats(businessId, dbLocationId);
+
+    return { count: savedCount };
+}
+
+// --- HELPER FUNCTIONS ---
+
+async function getAccessToken(refreshToken: string): Promise<string> {
+    const res = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+            client_id: process.env.GOOGLE_CLIENT_ID!,
+            client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+            refresh_token: refreshToken,
+            grant_type: 'refresh_token'
+        })
+    });
+
+    const data = await res.json();
+    if (data.error) throw new Error(`Token Refresh Failed: ${data.error_description || data.error}`);
+    return data.access_token;
+}
+
+async function fetchAccounts(accessToken: string): Promise<GmbAccount[]> {
+    // GET https://mybusinessaccountmanagement.googleapis.com/v1/accounts
+    const res = await fetch('https://mybusinessaccountmanagement.googleapis.com/v1/accounts', {
+        headers: { Authorization: `Bearer ${accessToken}` }
+    });
+
+    if (!res.ok) {
+        if (res.status === 401) throw new Error('401 Unauthorized: Refresh token invalid?');
+        throw new Error(`Accounts API Error: ${res.status} ${res.statusText}`);
+    }
+
+    const data = await res.json();
+    return data.accounts || [];
+}
+
+async function fetchLocations(accessToken: string, accountName: string): Promise<GmbLocation[]> {
+    // GET https://mybusinessbusinessinformation.googleapis.com/v1/{accountName}/locations
+    // We only need the name to verify existence and metadata for status
+    const url = `https://mybusinessbusinessinformation.googleapis.com/v1/${accountName}/locations?readMask=name,title,metadata&pageSize=100`;
+
+    const res = await fetch(url, {
+        headers: { Authorization: `Bearer ${accessToken}` }
+    });
+
+    if (!res.ok) {
+        // Warning only, don't crash whole sync if one account fails
+        console.warn(`[Sync] Location fetch failed for ${accountName}: ${res.status}`);
+        return [];
+    }
+
+    const data = await res.json();
+    return data.locations || [];
+}
+
+async function updateBusinessStats(businessId: string, locationId: string) {
+    const allReviews = await GBPReview.find({ locationId });
     if (allReviews.length > 0) {
         const avg = allReviews.reduce((acc, curr) => acc + curr.starRating, 0) / allReviews.length;
-
         await Business.updateOne(
             { id: businessId },
             {
@@ -178,8 +202,6 @@ export async function syncGMBReviews(businessId: string) {
             }
         );
     }
-
-    return { count: savedCount };
 }
 
 function convertGMBRating(rating: string): number {
