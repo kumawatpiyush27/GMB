@@ -48,37 +48,26 @@ export async function syncGMBReviews(businessId: string) {
     for (const account of accounts) {
         console.log(`[Sync] Checking Account: ${account.name} (Role: ${account.role})`);
 
-        // STRICT RULE: Only allow OWNER or PRIMARY_OWNER
-        // Managers are often restricted from certain API actions or have read-only views that might fail complex operations.
-        // User specifically requested: "If user is MANAGER only -> Error: Owner access required"
-        if (account.role !== 'OWNER' && account.role !== 'PRIMARY_OWNER') {
-            console.warn(`[Sync] ⚠️ Skipping account ${account.name}: Role is ${account.role} (Req: OWNER/PRIMARY_OWNER)`);
-            continue;
-        }
-
+        // Check if our target location exists in this account's graph
         try {
             // Fetch locations for this specific VALID account
             const locations = await fetchLocations(accessToken, account.name);
 
-            // Check if our target location exists in this account's graph
+            // Check if our target location exists in this list
             const match = locations.find(l => l.name === biz.googleLocationId);
 
             if (match) {
-                console.log(`[Sync] ✅ Success: Location found in account ${account.name}`);
+                console.log(`[Sync] ✅ Success: Location found in account ${account.name} (User Role: ${account.role})`);
                 verifiedResourceName = match.name;
-                ownerAccessConfirmed = true;
+                ownerAccessConfirmed = true; // We accept whatever role Google allowed us to list
                 break; // Stop discovery, we found it
             }
         } catch (err: any) {
             console.error(`[Sync] Error checking locations for ${account.name}:`, err.message);
-            // Continue to next account in case location is elsewhere
         }
     }
 
     if (!verifiedResourceName) {
-        if (!ownerAccessConfirmed) {
-            throw new Error('Access Denied: You must be an OWNER or PRIMARY_OWNER of this location. Manager access is insufficient for this sync.');
-        }
         throw new Error(`Location ${biz.googleLocationId} not found in any linked PRO account.`);
     }
 
