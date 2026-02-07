@@ -36,34 +36,99 @@ export async function syncGMBReviews(businessId: string) {
 
     const accessToken = tokens.access_token;
 
-    // 3. Fetch Reviews using Business Profile API
-    // GET https://businessprofile.googleapis.com/v1/locations/{locationId}/reviews
+    // 3. DISCOVERY_PHASE: Verify Location Existence
+    // We must strictly follow: Accounts -> Locations -> Reviews
+    // This prevents "404 Not Found" by ensuring the location ID is valid for the current user agent.
 
-    // biz.googleLocationId is expected to be "locations/LOC_ID"
-    const locationResource = biz.googleLocationId;
+    // Step A: Fetch all Accounts
+    // GET https://businessprofile.googleapis.com/v1/accounts
+    const accountsRes = await fetch('https://businessprofile.googleapis.com/v1/accounts', {
+        headers: { Authorization: `Bearer ${accessToken}` }
+    });
 
-    // Ensure we are using the correct resource format
-    if (!locationResource.startsWith('locations/')) {
-        console.warn(`Warning: googleLocationId ${locationResource} might not be a valid resource name.`);
+    if (!accountsRes.ok) {
+        if (accountsRes.status === 401) throw new Error('401 Unauthorized: Token expired');
+        throw new Error(`Failed to fetch accounts: ${accountsRes.status} ${accountsRes.statusText}`);
     }
 
-    console.log(`Fetching reviews for: ${locationResource}`);
+    const accountsData = await accountsRes.json();
+    const accounts = accountsData.accounts || [];
 
-    const reviewsUrl = `https://businessprofile.googleapis.com/v1/${locationResource}/reviews?pageSize=50`;
+    if (accounts.length === 0) {
+        throw new Error('No Business Profile accounts found for this user.');
+    }
+
+    let verifiedLocationName = '';
+    const targetLocationId = biz.googleLocationId; // e.g., "locations/123456"
+
+    console.log(`Starting discovery for target: ${targetLocationId} across ${accounts.length} accounts...`);
+
+    // Step B: Iterate Accounts to find the Target Location
+    for (const account of accounts) {
+        const accountName = account.name; // e.g., "accounts/112233..."
+
+        // Fetch locations for this specific account
+        // GET https://businessprofile.googleapis.com/v1/accounts/{accountId}/locations
+        // We only need the 'name' field to verify existence
+        const locsUrl = `https://businessprofile.googleapis.com/v1/${accountName}/locations?readMask=name&pageSize=100`;
+
+        try {
+            const locsRes = await fetch(locsUrl, {
+                headers: { Authorization: `Bearer ${accessToken}` }
+            });
+
+            if (locsRes.status === 403) {
+                console.warn(`Skipping account ${accountName}: 403 Forbidden`);
+                continue;
+            }
+
+            if (!locsRes.ok) {
+                console.warn(`Error fetching locations for ${accountName}: ${locsRes.status}`);
+                continue;
+            }
+
+            const locsData = await locsRes.json();
+            const locations = locsData.locations || [];
+
+            // Check if our target location is in this list via strict string matching
+            const match = locations.find((l: any) => l.name === targetLocationId);
+
+            if (match) {
+                verifiedLocationName = match.name;
+                console.log(`✅ Success: Found location ${verifiedLocationName} in account ${accountName}`);
+                break; // Found it, stop searching
+            }
+
+        } catch (err) {
+            console.error(`Error checking account ${accountName}:`, err);
+        }
+    }
+
+    // Step C: Validate Discovery Result
+    if (!verifiedLocationName) {
+        // If we checked all accounts and didn't find the location, it's truly inaccessible
+        console.error(`❌ Critical: Location ${targetLocationId} not found in any linked account.`);
+        throw new Error(`Location not found. Please ensure you are an owner/manager of this location in Google Business Profile.`);
+    }
+
+    // 4. Fetch Reviews using VERIFIED Location Name
+    // GET https://businessprofile.googleapis.com/v1/locations/{locationId}/reviews
+    console.log(`Fetching reviews for verified resource: ${verifiedLocationName}`);
+
+    const reviewsUrl = `https://businessprofile.googleapis.com/v1/${verifiedLocationName}/reviews?pageSize=50`;
 
     const reviewsRes = await fetch(reviewsUrl, {
         headers: { Authorization: `Bearer ${accessToken}` }
     });
 
-    // 6. Handle errors explicitly
-    if (reviewsRes.status === 401) throw new Error('401 Unauthorized: Token expired or invalid');
-    if (reviewsRes.status === 403) throw new Error('403 Forbidden: Missing scope or user not owner/manager');
-    if (reviewsRes.status === 404) throw new Error(`404 Not Found: Location ${locationResource} not found`);
+    // Handle Review-specific errors
+    if (reviewsRes.status === 404) {
+        throw new Error(`404 Not Found: Google API claims location doesn't exist despite verification.`);
+    }
 
     if (!reviewsRes.ok) {
         const errorData = await reviewsRes.json().catch(() => ({}));
-        console.error('GMB Review Sync API Error:', errorData);
-        throw new Error(`GMB API Error: ${reviewsRes.status} ${errorData.error?.message || reviewsRes.statusText}`);
+        throw new Error(`GMB Review API Error: ${reviewsRes.status} ${errorData.error?.message || reviewsRes.statusText}`);
     }
 
     const reviewsData = await reviewsRes.json();
