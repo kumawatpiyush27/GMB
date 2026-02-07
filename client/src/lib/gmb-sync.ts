@@ -104,27 +104,32 @@ export async function syncGMBReviews(businessId: string) {
     }
 
     if (locationDetails) {
-        const state = locationDetails.metadata?.verificationState; // VERIFIED, UNVERIFIED, PENDING
-        console.log(`[Sync] Location Status: ${state}`);
-
-        if (state !== 'VERIFIED') {
-            throw new Error(`Location is ${state}. Reviews are only available for VERIFIED locations. Please verify your business on Google.`);
-        }
+        // Log details to debug why metadata might be missing or what the state is
+        console.log(`[Sync] Location Details Found:`, JSON.stringify(locationDetails, null, 2));
+        const state = locationDetails.metadata?.verificationState;
+        console.log(`[Sync] Reported Verification State: ${state}`);
+        // We will NOT block here anymore, as the UI shows "Verified" even if API implies otherwise
+    } else {
+        console.warn(`[Sync] Could not retreive full location details for metadata check.`);
     }
 
     console.log(`[Sync] Fetching reviews for verified resource: ${verifiedResourceName}`);
 
     // GET https://businessprofile.googleapis.com/v1/locations/{locationId}/reviews
     const reviewsUrl = `https://businessprofile.googleapis.com/v1/${verifiedResourceName}/reviews?pageSize=50`;
+    console.log(`[Sync] Review URL: ${reviewsUrl}`);
 
     const reviewsRes = await fetch(reviewsUrl, {
         headers: { Authorization: `Bearer ${accessToken}` }
     });
 
+    console.log(`[Sync] Review API Status: ${reviewsRes.status}`);
+
     // Handle Review-specific errors
     if (reviewsRes.status === 404) {
-        // Now we know it's not a "missing ID" issue, but a capability issue
-        throw new Error(`404 Not Found: Reviews endpoint unavailable. Ensure the profile is published and visible on Google Maps.`);
+        const errBody = await reviewsRes.text();
+        console.error(`[Sync] 404 Response Body:`, errBody);
+        throw new Error(`404 Not Found: Reviews endpoint unavailable. URL: ${reviewsUrl}. Body: ${errBody}`);
     }
 
     if (!reviewsRes.ok) {
