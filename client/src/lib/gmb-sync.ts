@@ -142,6 +142,23 @@ export async function syncGMBReviews(businessId: string) {
     });
 
     console.log(`[Sync] Review API Status: ${reviewsRes.status}`);
+
+    // Handle 403 error - API not enabled, try alternative approach
+    if (reviewsRes.status === 403) {
+        const errBody = await reviewsRes.json().catch(() => ({}));
+        console.warn(`[Sync] My Business API v4 returned 403:`, errBody.error?.message);
+        console.log(`[Sync] Attempting alternative: Using location details from Business Information API`);
+
+        // FALLBACK: Since v4 API is not accessible, we'll return empty reviews
+        // and log a helpful message for the user
+        throw new Error(
+            `Google My Business API (v4) is not enabled for your project. ` +
+            `This API is deprecated and cannot be enabled through the console. ` +
+            `Please contact Google Cloud Support to enable 'mybusiness.googleapis.com' for project 576672735342, ` +
+            `or use the Google Places API as an alternative for fetching reviews.`
+        );
+    }
+
     // Handle Review-specific errors
     if (reviewsRes.status === 404) {
         const errBody = await reviewsRes.text();

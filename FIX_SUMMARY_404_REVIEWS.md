@@ -26,25 +26,29 @@ The error dialog showed:
 
 ## 🔍 Root Cause Analysis
 
-### 1. **Incorrect API Endpoint Format**
-The code was using:
+### 1. **Wrong API Version**
+The code was using the **Business Profile API v1** endpoint:
 ```
-https://businessprofile.googleapis.com/v1/locations/{locationId}/reviews
+https://businessprofile.googleapis.com/v1/accounts/{accountId}/locations/{locationId}/reviews
 ```
 
-But Google's Business Profile API v1 requires the **account context**:
+But Google's **Reviews API still uses v4**:
 ```
-https://businessprofile.googleapis.com/v1/{accountName}/locations/{locationId}/reviews
+https://mybusiness.googleapis.com/v4/accounts/{accountId}/locations/{locationId}/reviews
 ```
 
 ### 2. **Why This Matters**
-- Google's Business Profile API follows a hierarchical structure: `Account → Location → Reviews`
-- You cannot access reviews directly via location ID
-- The account ID is required to establish proper authorization context
-- Without the account path, Google's API returns a 404 HTML page instead of JSON
+- Google split the Business Profile API into different versions
+- **v1** is for account management and location information
+- **v4** is still required for reviews (not deprecated yet)
+- Using v1 for reviews returns 404 because that endpoint doesn't exist
 
-### 3. **Missing Account Name**
-The code had a variable `finalAccountName` but it could potentially be empty if the metadata fetch loop failed, even though the location was found in the discovery phase.
+### 3. **API Version Split**
+Google's Business Profile API uses different versions for different features:
+- `mybusinessaccountmanagement.googleapis.com/v1` - Account management
+- `mybusinessbusinessinformation.googleapis.com/v1` - Location information  
+- `mybusiness.googleapis.com/v4` - **Reviews** (still on v4!)
+
 
 ---
 
@@ -78,24 +82,26 @@ if (!finalAccountName) {
 }
 ```
 
-#### **Fix 4: Use Correct API Endpoint Format (Line 119-128)**
+#### **Fix 4: Use Correct v4 API Endpoint (Line 123-145)**
 ```typescript
-// Extract location ID from full resource name
+// Extract account ID and location ID from resource names
+const accountId = finalAccountName.split('/').pop();
 const locationId = verifiedResourceName.split('/').pop();
 
-// Build correct URL with account context
-const reviewsUrl = `https://businessprofile.googleapis.com/v1/${finalAccountName}/locations/${locationId}/reviews?pageSize=50`;
+// Build the correct v4 URL
+const reviewsUrl = `https://mybusiness.googleapis.com/v4/accounts/${accountId}/locations/${locationId}/reviews?pageSize=50`;
 ```
 
-**Before:**
+**Before (v1 - WRONG):**
 ```
-https://businessprofile.googleapis.com/v1/locations/10794805612384677/reviews
+https://businessprofile.googleapis.com/v1/accounts/123456789/locations/10742856243288468474/reviews
 ```
 
-**After:**
+**After (v4 - CORRECT):**
 ```
-https://businessprofile.googleapis.com/v1/accounts/123456789/locations/10794805612384677/reviews
+https://mybusiness.googleapis.com/v4/accounts/123456789/locations/10742856243288468474/reviews
 ```
+
 
 ---
 
