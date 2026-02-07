@@ -43,6 +43,7 @@ export async function syncGMBReviews(businessId: string) {
 
     let verifiedResourceName = '';
     let ownerAccessConfirmed = false;
+    let discoveredAccountName = ''; // Track which account owns this location
 
     // Iterate accounts to find the one that owns this location
     for (const account of accounts) {
@@ -59,6 +60,7 @@ export async function syncGMBReviews(businessId: string) {
             if (match) {
                 console.log(`[Sync] ✅ Success: Location found in account ${account.name} (User Role: ${account.role})`);
                 verifiedResourceName = match.name;
+                discoveredAccountName = account.name; // Save the account that owns this location
                 ownerAccessConfirmed = true; // We accept whatever role Google allowed us to list
                 break; // Stop discovery, we found it
             }
@@ -84,7 +86,7 @@ export async function syncGMBReviews(businessId: string) {
     // Let's re-fetch the specific location details to check its status before fetching reviews
     // This helps us give a precise error message instead of a generic 404
     let locationDetails: any = null;
-    let finalAccountName = '';
+    let finalAccountName = discoveredAccountName; // Start with the account we found during discovery
 
     // Re-find the account to get the full location details (metadata)
     for (const account of accounts) {
@@ -113,10 +115,23 @@ export async function syncGMBReviews(businessId: string) {
         console.warn(`[Sync] Could not retreive full location details for metadata check.`);
     }
 
-    console.log(`[Sync] Fetching reviews for verified resource: ${verifiedResourceName}`);
+    // Validate we have the account name before proceeding
+    if (!finalAccountName) {
+        throw new Error(`Failed to determine account name for location ${verifiedResourceName}`);
+    }
 
-    // GET https://businessprofile.googleapis.com/v1/locations/{locationId}/reviews
-    const reviewsUrl = `https://businessprofile.googleapis.com/v1/${verifiedResourceName}/reviews?pageSize=50`;
+    console.log(`[Sync] Fetching reviews for verified resource: ${verifiedResourceName}`);
+    console.log(`[Sync] Using account: ${finalAccountName}`);
+
+    // CRITICAL FIX: Business Profile API v1 requires account context in the path
+    // Incorrect: https://businessprofile.googleapis.com/v1/locations/{locationId}/reviews
+    // Correct: https://businessprofile.googleapis.com/v1/{accountName}/locations/{locationId}/reviews
+
+    // Extract location ID from the full resource name (e.g., "locations/12345" -> "12345")
+    const locationId = verifiedResourceName.split('/').pop();
+
+    // Build the correct URL with account context
+    const reviewsUrl = `https://businessprofile.googleapis.com/v1/${finalAccountName}/locations/${locationId}/reviews?pageSize=50`;
     console.log(`[Sync] Review URL: ${reviewsUrl}`);
 
     const reviewsRes = await fetch(reviewsUrl, {
