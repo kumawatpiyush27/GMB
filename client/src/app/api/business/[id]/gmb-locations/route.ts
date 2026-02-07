@@ -42,8 +42,8 @@ export async function GET(
         const accessToken = tokens.access_token;
 
         // 3. Fetch Accounts
-        // GET https://businessprofile.googleapis.com/v1/accounts
-        const accountsRes = await fetch('https://businessprofile.googleapis.com/v1/accounts?pageSize=20', {
+        // GET https://mybusinessaccountmanagement.googleapis.com/v1/accounts
+        const accountsRes = await fetch('https://mybusinessaccountmanagement.googleapis.com/v1/accounts?pageSize=20', {
             headers: { Authorization: `Bearer ${accessToken}` }
         });
 
@@ -57,7 +57,7 @@ export async function GET(
         }
 
         // 4. Fetch Locations for ALL accounts
-        // GET https://businessprofile.googleapis.com/v1/accounts/{accountId}/locations
+        // GET https://mybusinessbusinessinformation.googleapis.com/v1/{accountId}/locations
         let allLocations: any[] = [];
 
         const locationPromises = accountsData.accounts.map(async (account: any) => {
@@ -67,8 +67,8 @@ export async function GET(
                 if (!accountName) return [];
 
                 // Fetch locations for this account
-                // Use readMask to get specific fields if needed, or default
-                const locUrl = `https://businessprofile.googleapis.com/v1/${accountName}/locations?readMask=name,title,storeCode,metadata,categories,phoneNumbers,storefrontAddress&pageSize=100`;
+                // Use readMask to get specific fields if needed
+                const locUrl = `https://mybusinessbusinessinformation.googleapis.com/v1/${accountName}/locations?readMask=name,title,storeCode,metadata,categories,phoneNumbers,storefrontAddress&pageSize=100`;
 
                 const locRes = await fetch(locUrl, {
                     headers: { Authorization: `Bearer ${accessToken}` }

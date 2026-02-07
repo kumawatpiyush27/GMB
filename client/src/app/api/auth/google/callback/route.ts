@@ -44,7 +44,8 @@ export async function GET(request: NextRequest) {
 
         // 3. Verify Token & Access to Business Profile API
         // This ensures the token is valid for the required scope
-        const checkRes = await fetch('https://businessprofile.googleapis.com/v1/accounts', {
+        // We use the Account Management API for this verification
+        const checkRes = await fetch('https://mybusinessaccountmanagement.googleapis.com/v1/accounts', {
             headers: { Authorization: `Bearer ${tokens.access_token}` }
         });
 

@@ -41,8 +41,9 @@ export async function syncGMBReviews(businessId: string) {
     // This prevents "404 Not Found" by ensuring the location ID is valid for the current user agent.
 
     // Step A: Fetch all Accounts
-    // GET https://businessprofile.googleapis.com/v1/accounts
-    const accountsRes = await fetch('https://businessprofile.googleapis.com/v1/accounts', {
+    // NOTE: We use the dedicated Account Management API because strict businessprofile.googleapis.com/v1/accounts does not exist.
+    // GET https://mybusinessaccountmanagement.googleapis.com/v1/accounts
+    const accountsRes = await fetch('https://mybusinessaccountmanagement.googleapis.com/v1/accounts', {
         headers: { Authorization: `Bearer ${accessToken}` }
     });
 
@@ -68,9 +69,8 @@ export async function syncGMBReviews(businessId: string) {
         const accountName = account.name; // e.g., "accounts/112233..."
 
         // Fetch locations for this specific account
-        // GET https://businessprofile.googleapis.com/v1/accounts/{accountId}/locations
-        // We only need the 'name' field to verify existence
-        const locsUrl = `https://businessprofile.googleapis.com/v1/${accountName}/locations?readMask=name&pageSize=100`;
+        // GET https://mybusinessbusinessinformation.googleapis.com/v1/{accountName}/locations
+        const locsUrl = `https://mybusinessbusinessinformation.googleapis.com/v1/${accountName}/locations?readMask=name&pageSize=100`;
 
         try {
             const locsRes = await fetch(locsUrl, {
