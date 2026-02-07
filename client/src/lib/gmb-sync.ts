@@ -72,46 +72,59 @@ export async function syncGMBReviews(businessId: string) {
     }
 
     // 4. FETCH PHASE: Get Reviews from Validated Location
-    // We found the location in a specific account.
-    // The v1 businessprofile API seems unstable for some accounts (returning 404 even after verification).
-    // Fallback: Construct the v4 URL which is account-scoped and often more reliable.
-    // Format: https://mybusiness.googleapis.com/v4/{accountName}/{locationName}/reviews
+    // We strictly use the v1 Business Profile API.
+    // The previous v4 fallback caused a 403 (API Not Enabled), confirming we must fix the v1 404 root cause.
 
-    // verifiedResourceName is "locations/..."
-    // We need the account name where we found it.
-    // Since we found it in the loop, let's track the account name there.
+    // Root Cause Analysis for v1 404:
+    // If a location exists in the account list but returns 404 for reviews, it is usually:
+    // 1. NOT VERIFIED
+    // 2. SUSPENDED
+    // 3. PENDING VERIFICATION
 
-    // Rerun search to capture account name (or optimize later, but for now safety first)
+    // Let's re-fetch the specific location details to check its status before fetching reviews
+    // This helps us give a precise error message instead of a generic 404
+    let locationDetails: any = null;
     let finalAccountName = '';
+
+    // Re-find the account to get the full location details (metadata)
     for (const account of accounts) {
         try {
-            const locs = await fetchLocations(accessToken, account.name);
-            if (locs.find(l => l.name === verifiedResourceName)) {
+            // We need 'metadata' to check verification details
+            const url = `https://mybusinessbusinessinformation.googleapis.com/v1/${account.name}/locations?readMask=name,title,metadata&pageSize=100`;
+            const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+            const data = await res.json();
+            const match = (data.locations || []).find((l: any) => l.name === verifiedResourceName);
+
+            if (match) {
+                locationDetails = match;
                 finalAccountName = account.name;
                 break;
             }
         } catch (e) { }
     }
 
-    let reviewsUrl = '';
-    if (finalAccountName) {
-        console.log(`[Sync] Constructing v4 URL with Account: ${finalAccountName}`);
-        reviewsUrl = `https://mybusiness.googleapis.com/v4/${finalAccountName}/${verifiedResourceName}/reviews?pageSize=50`;
-    } else {
-        // Fallback to v1 if for some reason we lost the account context (shouldn't happen)
-        console.warn('[Sync] Could not re-verify account context, trying v1 fallback...');
-        reviewsUrl = `https://businessprofile.googleapis.com/v1/${verifiedResourceName}/reviews?pageSize=50`;
+    if (locationDetails) {
+        const state = locationDetails.metadata?.verificationState; // VERIFIED, UNVERIFIED, PENDING
+        console.log(`[Sync] Location Status: ${state}`);
+
+        if (state !== 'VERIFIED') {
+            throw new Error(`Location is ${state}. Reviews are only available for VERIFIED locations. Please verify your business on Google.`);
+        }
     }
 
-    console.log(`[Sync] Fetching reviews from: ${reviewsUrl}`);
+    console.log(`[Sync] Fetching reviews for verified resource: ${verifiedResourceName}`);
+
+    // GET https://businessprofile.googleapis.com/v1/locations/{locationId}/reviews
+    const reviewsUrl = `https://businessprofile.googleapis.com/v1/${verifiedResourceName}/reviews?pageSize=50`;
 
     const reviewsRes = await fetch(reviewsUrl, {
         headers: { Authorization: `Bearer ${accessToken}` }
     });
 
+    // Handle Review-specific errors
     if (reviewsRes.status === 404) {
-        // This should theoretically not happen if discovery passed, but API consistency varies
-        throw new Error('404 Not Found during review fetch (Unexpected after verification).');
+        // Now we know it's not a "missing ID" issue, but a capability issue
+        throw new Error(`404 Not Found: Reviews endpoint unavailable. Ensure the profile is published and visible on Google Maps.`);
     }
 
     if (!reviewsRes.ok) {
